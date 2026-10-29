@@ -1,0 +1,1827 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F5FB">
+<title>Vidz</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one phone-width column (max 480px) with three tabs (Home, My List, Me)
+   and two full-screen layers on top (drama detail, vertical episode player). */
+:root{
+  --bg:#F6F5FB; --surface:#FFFFFF; --fg:#15142A; --muted:#66658A; --line:#E1DFF0;
+  --accent:#4B5BFF; --accent-fg:#FFFFFF; --mark:#E59A00; --bar:#FFFFFFEE;
+  --display:'Bricolage Grotesque','Hind Siliguri',system-ui,sans-serif;
+  --body:'DM Sans','Hind Siliguri',system-ui,sans-serif;
+  --w:480px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0F1C; --surface:#181A2E; --fg:#F1F0FA; --muted:#9C9BB8; --line:#2A2C45;
+    --accent:#7C8BFF; --accent-fg:#0E0F1C; --mark:#FFC53D; --bar:#0E0F1CEE; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0F1C; --surface:#181A2E; --fg:#F1F0FA; --muted:#9C9BB8; --line:#2A2C45;
+  --accent:#7C8BFF; --accent-fg:#0E0F1C; --mark:#FFC53D; --bar:#0E0F1CEE; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--body); font-size:15px; line-height:1.45;
+  padding-block:0; padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{max-width:var(--w);margin:0 auto;padding-bottom:96px;min-height:100vh}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+svg{display:block}
+
+/* header + search */
+.top{display:flex;align-items:center;gap:12px;padding-top:14px}
+.logo{display:flex;align-items:center;gap:6px;font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.03em}
+.logo i{width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.logo i svg{width:12px;height:12px;fill:var(--accent-fg);margin-left:2px}
+.search{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:0 14px;height:42px}
+.search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;flex:none}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;height:100%}
+.search input::placeholder{color:var(--muted)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:500;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
+
+/* posters (generated artwork, no external images) */
+.poster{--a:260;--b:300;position:relative;overflow:hidden;aspect-ratio:2/3;border-radius:12px;isolation:isolate;
+  background:radial-gradient(120% 80% at 85% 8%,hsl(var(--a) 85% 62% / .55),transparent 60%),linear-gradient(165deg,hsl(var(--a) 62% 34%),hsl(var(--b) 58% 12%))}
+.poster::after{content:"";position:absolute;width:72%;aspect-ratio:1;right:-22%;top:10%;border-radius:50%;border:2px solid hsl(var(--a) 90% 85% / .25);z-index:-1}
+.poster .pt{position:absolute;left:10px;right:10px;bottom:10px;font-family:var(--display);font-weight:800;font-size:17px;line-height:1;letter-spacing:-.02em;color:#fff;text-transform:uppercase;text-wrap:balance;text-shadow:0 2px 10px #0006}
+.poster .pg{position:absolute;left:8px;top:8px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#0005;padding:3px 7px;border-radius:6px;backdrop-filter:blur(4px)}
+.poster .pn{position:absolute;right:0;top:10px;font-size:10px;font-weight:800;letter-spacing:.06em;color:#1b1300;background:var(--mark);padding:3px 8px 3px 10px;border-radius:6px 0 0 6px}
+.save{position:absolute;right:8px;bottom:8px;width:30px;height:30px;border-radius:50%;background:#0006;display:grid;place-items:center;z-index:2;backdrop-filter:blur(4px)}
+.save svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2}
+.save[aria-pressed="true"] svg{fill:#fff}
+.card{display:block;text-align:left;min-width:0}
+.card .poster{width:100%}
+.card .ct{margin-top:7px;font-weight:700;font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .cv{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:12px;margin-top:2px}
+.card .cv svg{width:9px;height:9px;fill:currentColor}
+.card .cwrap{position:relative}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px}
+.sec h2{font-size:21px;letter-spacing:-.02em}
+.sec span{color:var(--muted);font-size:12px}
+
+/* hero carousel */
+.hero{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:10px 0 4px;scrollbar-width:none}
+.hero::-webkit-scrollbar{display:none}
+.hcard{flex:0 0 80%;scroll-snap-align:center;position:relative;text-align:left;border-radius:18px;overflow:hidden}
+.hcard .poster{aspect-ratio:4/5;border-radius:18px}
+.hcard .pt{display:none}
+.hov{position:absolute;inset:auto 0 0 0;padding:44px 16px 16px;background:linear-gradient(transparent,#000a);color:#fff;display:flex;flex-direction:column;gap:6px}
+.hov h3{font-size:26px;line-height:1;letter-spacing:-.03em;text-transform:uppercase}
+.hov p{margin:0;font-size:12px;opacity:.85}
+.pill{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:#fff;color:#14132a;font-weight:700;border-radius:999px;padding:8px 16px;margin-top:4px}
+.pill svg{width:11px;height:11px;fill:currentColor}
+
+/* top 10 */
+.rail{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.t10{flex:none;display:flex;align-items:flex-end;gap:0;text-align:left}
+.t10 b{font-family:var(--display);font-weight:800;font-size:84px;line-height:.8;letter-spacing:-.08em;color:transparent;-webkit-text-stroke:2px var(--accent);margin-right:-10px;position:relative;z-index:1;padding-bottom:4px}
+.t10 .poster{width:104px}
+
+/* segmented + lists */
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{padding:6px 14px;border-radius:999px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);font-weight:700}
+.page-h{font-size:30px;letter-spacing:-.03em;padding-top:18px;margin-bottom:14px}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:26px 18px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--fg);font-family:var(--display);font-size:18px;margin-bottom:4px}
+
+/* me */
+.profile{display:flex;align-items:center;gap:14px;padding-top:18px}
+.avatar{width:58px;height:58px;border-radius:50%;background:linear-gradient(140deg,var(--accent),hsl(320 70% 60%));display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:22px;color:#fff;flex:none}
+.profile .who{flex:1;min-width:0}
+.profile .who b{display:block;font-family:var(--display);font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profile .who small{color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-fg);font-weight:700;border-radius:999px;padding:10px 20px}
+.btn.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.menu{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;text-align:left}
+.row+.row{border-top:1px solid var(--line)}
+.row svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.8;flex:none}
+.row span{flex:1;min-width:0}
+.row em{font-style:normal;color:var(--muted);font-size:13px}
+.note{color:var(--muted);font-size:12px;margin-top:14px}
+
+/* notifications */
+.bell{position:relative;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.bell svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.bell i{position:absolute;top:9px;right:10px;width:10px;height:10px;border-radius:50%;background:#e5484d;border:2px solid var(--surface)}
+.nrow{display:flex;gap:12px;width:100%;text-align:left;padding:14px 0;border-top:1px solid var(--line)}
+.ndot{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:6px;flex:none}
+.ntx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ntx small{color:var(--muted)}
+.nrow{touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.nrow.anim{transition:transform .22s ease,opacity .22s ease}
+@media (prefers-reduced-motion: reduce){.nrow.anim{transition:none}}
+/* tab bar */
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,var(--w));z-index:20;display:flex;background:var(--bar);backdrop-filter:blur(14px);border-top:1px solid var(--line);
+  padding:8px max(16px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:500;color:var(--muted);padding:4px 0}
+.tabbar svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tabbar button[aria-current="page"]{color:var(--accent);font-weight:700}
+.tabbar button[aria-current="page"] svg{fill:currentColor;fill-opacity:.18}
+
+/* overlays */
+.ov{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,var(--w));z-index:30;background:var(--bg);overflow-y:auto;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-left,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+.back{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;margin-top:12px}
+.back svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2}
+.d-hero{display:flex;gap:16px;margin-top:14px;align-items:flex-end}
+.d-hero .poster{width:42%;flex:none}
+.d-hero h1{font-size:30px;line-height:1;letter-spacing:-.03em}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;color:var(--muted);font-size:13px;margin-top:8px}
+.syn{margin:18px 0}
+.acts{display:flex;gap:10px}
+.acts .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}
+.acts .btn svg{width:13px;height:13px;fill:currentColor}
+.eps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.eps button{height:46px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-weight:700}
+.eps button[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+
+/* player (always dark) */
+#player{background:#07070d;color:#fff;padding:0;overflow:hidden}
+.stage{position:absolute;inset:0;--a:260;--b:300;background:linear-gradient(160deg,hsl(var(--a) 60% 26%),hsl(var(--b) 55% 9%),hsl(var(--a) 50% 18%));background-size:220% 220%;animation:drift 9s ease-in-out infinite alternate;touch-action:pan-x}
+.stage.paused{animation-play-state:paused}
+@keyframes drift{from{background-position:0% 0%}to{background-position:100% 100%}}
+.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.ghost-ep{position:absolute;left:0;right:0;top:34%;text-align:center;font-family:var(--display);font-weight:800;font-size:96px;letter-spacing:-.05em;color:#fff;opacity:.13;pointer-events:none}
+.ph{position:absolute;left:0;right:0;top:calc(34% + 108px);text-align:center;font-size:12px;opacity:.6;padding:0 40px}
+.p-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:12px;z-index:3;
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-left,0px)) 24px max(16px,env(safe-area-inset-right,0px));background:linear-gradient(#000a,transparent)}
+.p-top .back{flex:none;margin:0;width:36px;height:36px;background:none;border:0;border-radius:0;color:#fff;filter:drop-shadow(0 1px 4px #0009)}
+.p-top .back svg{width:26px;height:26px;stroke-width:2.4}
+.p-top b{font-family:var(--display);font-size:18px;font-weight:700;text-shadow:0 1px 6px #0009}
+.pth{flex:none;width:40px;height:54px;border-radius:9px;overflow:hidden;background:linear-gradient(160deg,hsl(var(--a) 60% 30%),hsl(var(--b) 55% 12%));box-shadow:0 0 0 1px #fff3,0 4px 12px #0007}
+.pth img{display:block;width:100%;height:100%;object-fit:cover}
+.p-top b{min-width:0;line-height:1.25}
+.p-top,.p-side,.p-bot{transition:opacity .45s ease}
+#player.ui-off .p-top,#player.ui-off .p-side,#player.ui-off .p-bot{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.p-top,.p-side,.p-bot{transition:none}}
+.adbox{display:flex;justify-content:center;align-items:center;overflow:hidden}
+.adf{border:0;width:320px;max-width:100%;height:50px;display:block;background:transparent}
+body.vz-nosocial .vzx{display:none!important}
+#adHome{display:flex;justify-content:center;height:0;overflow:hidden;position:fixed;left:50%;transform:translateX(-50%);width:min(100%,var(--w));bottom:var(--tbh,64px);z-index:19}
+#adHome.ok{height:auto;overflow:visible}
+body.hasad #app{padding-bottom:160px}
+.p-ad{position:absolute;left:0;right:0;z-index:4;display:flex;justify-content:center;height:0;overflow:hidden;visibility:hidden}
+#player.ui-off .p-ad.on{visibility:visible}
+#player.ui-off .p-ad.on.ok{height:auto;overflow:visible}
+.p-adt{top:calc(6px + env(safe-area-inset-top,0px))}
+.p-adb{bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+.p-side{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:3;display:flex;flex-direction:column;gap:22px;align-items:center}
+.p-side span{display:none}
+.p-side button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;text-shadow:0 1px 6px #000a}
+.p-side svg{width:34px;height:34px;stroke:#fff;fill:none;stroke-width:2;filter:drop-shadow(0 1px 5px #0008)}
+.p-side button[aria-pressed="true"] svg{fill:#fff}
+.p-bot{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:40px 0 0;background:linear-gradient(transparent,#000a 55%,#000b)}
+.p-bot>*:not(.p-ctl){margin-left:max(14px,env(safe-area-inset-left,0px));margin-right:max(14px,env(safe-area-inset-right,0px))}
+.pbrow{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.pbrow .pth{width:36px;height:48px;border-radius:6px}
+.pbt{min-width:0;flex:1}
+.pbt p{margin:0}
+.p-bot h2{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0;padding-right:56px;text-shadow:0 1px 6px #0009}
+.p-bot p{margin:0 0 10px;font-size:13px;opacity:.75}
+.p-bot p.pstory{opacity:.95;font-size:13px;line-height:1.4;margin-bottom:10px;padding-right:56px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.p-bot p.pstory[hidden]{display:none}
+.epbtn{display:flex;align-items:center;gap:10px;width:calc(100% - 28px - 56px);background:#4a4a4ab3;border:0;border-radius:8px;padding:10px 12px;font-weight:700;backdrop-filter:blur(6px)}
+.epbtn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.epbtn span{flex:1;text-align:left}
+.bar{margin-top:8px;height:22px;display:flex;align-items:center;cursor:pointer;touch-action:none}
+.bar i{display:block;width:100%;height:3px;border-radius:3px;background:#fff3;position:relative}
+.bar i u{position:absolute;left:0;top:0;bottom:0;background:#fff;border-radius:3px;width:0}
+.p-ctl{display:flex;justify-content:flex-end;align-items:center;gap:22px;font-size:15px;font-weight:700;background:#000;padding:8px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) 16px}
+.p-ctl button,.p-ctl .hdq{display:flex;align-items:center;gap:8px;padding:0;background:none;color:#fff;font:inherit}
+.p-ctl svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:1.8}
+.playflash{position:absolute;left:50%;top:44%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:#0007;display:grid;place-items:center;z-index:2;pointer-events:none;opacity:0;transition:opacity .2s}
+.playflash.on{opacity:1}
+.playflash svg{width:30px;height:30px;fill:#fff;margin-left:4px}
+
+/* sheet + toast */
+.scrim{position:fixed;inset:0;z-index:60;background:#0008;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:min(100%,var(--w));max-height:72vh;overflow-y:auto;background:#1a1c2e;color:#fff;border-radius:20px 20px 0 0;
+  padding:18px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+.sheet.light{background:var(--surface);color:var(--fg)}
+.sheet h3{font-size:19px;margin-bottom:12px;display:flex;justify-content:space-between;gap:10px}
+.sheet .eps button{background:#ffffff14;border-color:#ffffff1f;color:#fff}
+.sheet .eps button[aria-current="true"]{background:var(--accent);color:var(--accent-fg)}
+.ranges{display:flex;gap:16px;margin-bottom:14px}
+.ranges button{font-weight:700;color:var(--muted);padding-bottom:4px;border-bottom:2px solid transparent}
+.ranges button[aria-current="true"]{color:var(--fg);border-color:var(--accent)}
+.sheet .ranges button{color:#ffffffb3}
+.sheet .ranges button[aria-current="true"]{color:#fff;border-color:var(--accent)}
+textarea.field{font:inherit;color:inherit}
+.field{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 14px;margin:6px 0 12px}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:80;background:#14132a;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:500;max-width:88%;text-align:center;box-shadow:0 6px 24px #0006}
+.hist-item{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:8px 0}
+.hist-item .poster{width:46px;flex:none;border-radius:8px}
+.hist-item .poster .pt,.hist-item .poster .pg,.hist-item .poster .pn{display:none}
+.hist-item b{display:block}
+.hist-item small{color:var(--muted)}
+.pimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.poster.hasimg::after,.poster.hasimg .pt{display:none}
+.eps button.lk{position:relative;color:var(--muted)}
+.eps button.lk svg{position:absolute;top:4px;right:4px;width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.2}
+.eps button.lk[aria-current="true"]{color:var(--accent-fg)}
+.sheet .eps button.lk{color:#ffffffa6}
+.prem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-top:12px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#f5b53d,#e8791f);color:#2a1600}
+.prem>svg:first-child{flex:none;width:30px;height:30px;fill:#2a1600;stroke:none}
+.prem span{flex:1;min-width:0}.prem b{display:block;font-size:16px}.prem small{display:block;font-size:12.5px;opacity:.85;margin-top:1px}
+.prem>svg:last-child{flex:none;width:18px;height:18px;stroke:#2a1600;fill:none;stroke-width:2}
+.psec{margin-top:18px}
+.psh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.psh svg{flex:none;width:28px;height:28px;fill:#e8931f;stroke:none}
+.psh b{display:block;font-size:17px}.psh small{display:block;color:var(--muted);font-size:12.5px}
+.pben{margin:0 0 14px;padding:0;list-style:none;display:grid;gap:8px;font-size:14px}
+.pben li{display:flex;gap:10px;align-items:flex-start}.pben li::before{content:"✓";color:var(--accent);font-weight:800}
+.plans{display:grid;gap:10px;margin:6px 0 14px}
+.plan{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 14px}
+.pc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 4px;border-radius:16px;background:var(--surface);border:1px solid var(--line);text-align:center;min-width:0}
+.pc b{font-size:17px;line-height:1.2;color:var(--accent)}
+.pc span{font-size:11.5px;color:var(--muted);line-height:1.25}
+.pc em{font-style:normal;font-size:13px;font-weight:800;margin-top:8px}
+.pc.soon em{font-weight:700;font-size:11px;color:var(--muted)}
+.pc.best{background:var(--accent);border-color:var(--accent)}
+.pc.best b,.pc.best span,.pc.best em{color:var(--accent-fg,#fff)}
+.plan.soon em{color:var(--muted);font-size:14px;font-weight:700}
+.plan b{font-size:16px}.plan small{display:block;color:var(--muted);margin-top:2px}
+.plan em{font-style:normal;font-weight:800;font-size:18px;color:var(--accent);white-space:nowrap}
+.paybox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:8px 0 6px;white-space:pre-wrap;word-break:break-word;font-size:15px;font-weight:600}
+.btn[disabled]{opacity:.45;pointer-events:none}
+#gpov{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,var(--w));z-index:70;background:var(--bg)}
+#gpov[hidden]{display:none}
+#gpov iframe{display:block;width:100%;height:100%;border:0;background:var(--bg)}
+.paym{margin:12px 0 0;padding:12px;border-radius:14px;border:1px solid var(--line)}
+.pmh{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pmh b{font-size:16px}.ptag{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--surface);color:var(--accent);border:1px solid var(--line)}
+.paysum{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.paysum b{font-size:16px}.paysum em{font-style:normal;font-weight:800;font-size:18px;color:var(--accent)}
+.paystep{margin:16px 0 4px;font-weight:700}
+.lockic{width:56px;height:56px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 12px}
+.lockic svg{width:26px;height:26px;stroke:var(--accent);fill:none;stroke-width:1.8}
+#gate{z-index:100;display:flex;align-items:center;justify-content:center;text-align:center}
+#gate[hidden]{display:none}
+#gate .gbox{display:flex;flex-direction:column;gap:14px;align-items:center;padding:24px}
+#gate h1{font-size:28px;letter-spacing:-.02em}
+.ban{display:flex;gap:10px;align-items:flex-start;background:var(--accent);color:var(--accent-fg);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:14px}
+.ban span{flex:1;min-width:0}
+.ban button{font-size:20px;line-height:1;color:inherit;padding:0 4px}
+@media (prefers-reduced-motion: reduce){.stage{animation:none}.playflash{transition:none}}
+</style>
+<style>
+/* Standalone page basics (an app WebView has no host page to supply them). */
+:root{color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head><body>
+
+<div id="app">
+  <section id="home"></section>
+  <section id="list" hidden></section>
+  <section id="me" hidden></section>
+</div>
+<nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+<div class="ov" id="detail" hidden></div>
+<div class="ov" id="player" hidden></div>
+<div class="ov" id="spage" hidden></div>
+<div id="gpov" hidden></div>
+<script type="text/html" id="gpTpl">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Premium</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<style>
+:root{--bg:#F4F3FB;--surface:#fff;--ink:#15122B;--muted:#5C5A75;--line:#E3E2F0;--accent:#4A5BFF;--accent-ink:#fff;--soft:#ECEEFF;--err:#C62847;--shadow:0 1px 2px rgba(21,18,43,.05),0 4px 14px rgba(21,18,43,.05);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F0E1F;--surface:#1A1830;--ink:#F2F1FF;--muted:#A9A7C8;--line:#2E2B4D;--accent:#6B7AFF;--soft:#252850;--err:#FF7A93;--shadow:none}}
+:root[data-theme="dark"]{--bg:#0F0E1F;--surface:#1A1830;--ink:#F2F1FF;--muted:#A9A7C8;--line:#2E2B4D;--accent:#6B7AFF;--soft:#252850;--err:#FF7A93;--shadow:none}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+.wrap{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.screen{flex:1;display:flex;flex-direction:column}
+.content{flex:1;padding:0 18px 8px}
+.appbar{display:flex;align-items:center;gap:10px;padding:18px 18px 10px}
+.mark{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center}
+.mark svg{width:16px;height:16px;fill:#fff;margin-left:2px}
+.word{font-weight:700;font-size:1.55rem;letter-spacing:-.03em}
+.back{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.back svg{width:18px;height:18px}
+.appbar .x{margin-left:auto}
+.apptitle{font-weight:700;font-size:1.15rem}
+h1{font-size:1.9rem;line-height:1.15;font-weight:700;letter-spacing:-.03em;margin:14px 0 6px}
+.sub{margin:0 0 22px;color:var(--muted)}
+h2{font-size:1rem;font-weight:700;margin:26px 2px 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 16px;box-shadow:var(--shadow)}
+.perk{display:flex;gap:14px;align-items:flex-start;padding:14px 0}
+.perk+.perk{border-top:1px solid var(--line)}
+.ico{flex:none;width:36px;height:36px;border-radius:10px;background:var(--soft);color:var(--accent);display:grid;place-items:center}
+.ico svg{width:19px;height:19px}
+.perk b{display:block;font-weight:600}
+.perk span{color:var(--muted);font-size:.88rem}
+.sum{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin:0 0 14px;padding:13px 16px;background:var(--accent);color:#fff;border-radius:14px}
+.sum .note{flex-basis:100%;margin:10px 0 0;padding-top:10px;border-top:1px solid rgba(255,255,255,.28);font-size:.84rem;color:rgba(255,255,255,.95)}
+.sum small{display:block;color:rgba(255,255,255,.82);font-size:.76rem;line-height:1.2}
+.sum .n{font-weight:600}
+.sum .p{font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.plan{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;min-height:78px;box-shadow:var(--shadow)}
+.plan .d{font-weight:700;font-size:1.05rem;color:var(--accent);line-height:1.2}
+.plan .t{font-size:.72rem;color:var(--muted);line-height:1.25}
+.plan[aria-checked="true"]{background:var(--accent);border-color:var(--accent)}
+.plan[aria-checked="true"] .d,.plan[aria-checked="true"] .t{color:#fff}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bar{position:sticky;bottom:0;margin-top:24px;padding:14px 18px 12px;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -8px 20px rgba(21,18,43,.06)}
+.cta{width:100%;font:inherit;font-weight:700;font-size:1rem;padding:15px;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.cta:disabled{opacity:.7;cursor:default}
+.fine{text-align:center;color:var(--muted);font-size:.76rem;margin:8px 0 0}
+.row{display:flex;justify-content:space-between;padding:12px 0;color:var(--muted)}
+.row+.row{border-top:1px solid var(--line)}
+.row b{color:var(--ink);font-weight:600}
+.row.total{color:var(--ink);font-weight:700}
+.row.total b{font-size:1.15rem;font-weight:700}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.tab{font:inherit;font-weight:700;color:var(--accent);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 4px;cursor:pointer;box-shadow:var(--shadow)}
+.tab[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 0 14px}
+.kv+.kv{border-top:1px solid var(--line);padding-top:14px}
+.kv small{display:block;color:var(--muted);font-size:.78rem;line-height:1.2}
+.kv .v{font-weight:700;font-size:1.3rem;letter-spacing:.01em}
+.copy{flex:none;font:inherit;font-weight:600;font-size:.85rem;color:var(--accent);background:var(--soft);border:0;border-radius:99px;padding:8px 16px;cursor:pointer}
+.steps{margin:2px 0 0;padding:14px 0 0 20px;border-top:1px solid var(--line);color:var(--muted);font-size:.88rem}
+.steps li{padding:2px 0}
+.steps b{color:var(--ink);font-weight:600}
+.fields{display:grid;gap:20px}
+.hint{margin:-6px 2px 12px;color:var(--muted);font-size:.88rem}
+label{display:block;font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:7px}
+input{width:100%;font:inherit;font-size:1rem;font-weight:500;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:14px 12px;outline:none}
+input::placeholder{color:var(--muted);opacity:.7;font-weight:400}
+input:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--soft)}
+.inp{position:relative}
+.inp svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:19px;height:19px;color:var(--muted);pointer-events:none}
+.inp input{padding-left:44px}
+.help{color:var(--muted);font-size:.78rem;margin:7px 2px 0}
+input[aria-invalid="true"]{border-color:var(--err);box-shadow:0 0 0 3px color-mix(in srgb,var(--err) 18%,transparent)}
+.none{color:var(--muted);text-align:center;padding:10px 0}
+.err{color:var(--err);font-size:.84rem;font-weight:600;text-align:center;margin:0 0 10px;min-height:1.2em}
+.done{align-items:center;text-align:center;padding-top:72px}
+.ok{width:72px;height:72px;border-radius:50%;background:var(--accent);display:grid;place-items:center;margin:0 auto 20px}
+.ok svg{width:34px;height:34px;stroke:#fff}
+.done h1{margin:0 0 6px}
+.done .card{margin:24px 0 0;text-align:left}
+.ok.pend{background:none}
+.spin{width:72px;height:72px;border-radius:50%;border:5px solid var(--soft);border-top-color:var(--accent);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.ok.bad{background:var(--err)}
+.done .card+.card{margin-top:12px}
+.track{list-style:none;margin:0;padding:8px 0}
+.track li{display:flex;gap:12px;align-items:center;padding:9px 0;color:var(--muted);font-weight:500}
+.track i{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center}
+.track i svg{width:12px;height:12px;stroke:#fff}
+.track li.cur{color:var(--ink);font-weight:600}
+.track li.cur i{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 0 4px,transparent 4.5px)}
+.track li.done{color:var(--ink)}
+.track li.done i{background:var(--accent);border-color:var(--accent)}
+.track li.bad{color:var(--err);font-weight:600}
+.track li.bad i{background:var(--err);border-color:var(--err)}
+.hist{display:grid;gap:10px}
+.hi{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px;box-shadow:var(--shadow)}
+.hic{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center}
+.hic svg{width:20px;height:20px}
+.hi .mid{flex:1;min-width:0}
+.hi .mid b{display:block;font-weight:600}
+.hi .mid span{display:block;color:var(--muted);font-size:.8rem;line-height:1.4}
+.hi .end{text-align:right;flex:none}
+.hi .end b{display:block;font-weight:700}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:99px;margin-top:4px}
+.pending{--c:#8A5A00;--b:#FFF1D6}.approved{--c:#177A47;--b:#E1F4E9}.rejected{--c:#B4233F;--b:#FDE8EC}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pending{--c:#F5C15A;--b:#33270A}:root:not([data-theme="light"]) .approved{--c:#5BD08C;--b:#12301F}:root:not([data-theme="light"]) .rejected{--c:#FF7A93;--b:#3A1620}}
+:root[data-theme="dark"] .pending{--c:#F5C15A;--b:#33270A}:root[data-theme="dark"] .approved{--c:#5BD08C;--b:#12301F}:root[data-theme="dark"] .rejected{--c:#FF7A93;--b:#3A1620}
+.hic.pending,.hic.approved,.hic.rejected,.pill.pending,.pill.approved,.pill.rejected{background:var(--b);color:var(--c)}
+.empty{color:var(--muted);text-align:center;padding:20px 16px;background:var(--surface);border:1px dashed var(--line);border-radius:14px;font-size:.9rem}
+.order{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.oh{display:flex;align-items:center;gap:12px;padding:16px}
+.oh .t{flex:1;min-width:0}
+.oh .t b{display:block;font-weight:700;line-height:1.3}
+.oh .t span{color:var(--muted);font-size:.84rem}
+.oh strong{font-size:1.1rem;font-weight:700}
+.inc{list-style:none;margin:0;padding:14px 16px;border-top:1px solid var(--line);display:grid;gap:10px;font-size:.9rem}
+.inc li{display:flex;gap:10px;align-items:center}
+.inc i{flex:none;width:20px;height:20px;border-radius:50%;background:var(--soft);color:var(--accent);display:grid;place-items:center}
+.inc i svg{width:12px;height:12px}
+.inc li.off{color:var(--muted)}
+.inc li.off i{background:var(--bg);color:var(--muted)}
+.otot{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--soft)}
+.otot span{font-weight:600}
+.otot b{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;color:var(--accent)}
+.sh{display:flex;gap:12px;align-items:center;margin:28px 2px 14px}
+.sh .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:.88rem;display:grid;place-items:center;margin-top:1px}
+.sh h3{margin:0;font-size:1.02rem;font-weight:700;line-height:1.3}
+.sh p{margin:2px 0 0;color:var(--muted);font-size:.86rem}
+.lock{display:flex;gap:8px;align-items:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+.lock svg{flex:none;width:16px;height:16px}
+.inp .vchk{display:none;left:auto;right:14px;width:20px;height:20px;color:#177A47}
+.inp .vchk.on{display:block}
+.inp.rp input{padding-right:78px}.inp.rr input{padding-right:44px}
+.paste{position:absolute;right:8px;top:50%;transform:translateY(-50%);font:inherit;font-size:.78rem;font-weight:600;color:var(--accent);background:var(--soft);border:0;border-radius:99px;padding:5px 12px;cursor:pointer}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .inp .vchk{color:#5BD08C}}
+:root[data-theme="dark"] .inp .vchk{color:#5BD08C}
+.k-bkash{--brand:#E2136E;--bink:#fff;--bsoft:#FDE7F1;--btext:#C70F5F}
+.k-nagad{--brand:#F6921E;--bink:#2B1700;--bsoft:#FEF0DC;--btext:#A85300}
+.k-rocket{--brand:#8C3494;--bink:#fff;--bsoft:#F3E6F5;--btext:#8C3494}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .k-bkash{--bsoft:#3A1226;--btext:#FF6AA9}:root:not([data-theme="light"]) .k-nagad{--bsoft:#38260C;--btext:#FFB45A}:root:not([data-theme="light"]) .k-rocket{--bsoft:#2B1530;--btext:#D38BDB}}
+:root[data-theme="dark"] .k-bkash{--bsoft:#3A1226;--btext:#FF6AA9}:root[data-theme="dark"] .k-nagad{--bsoft:#38260C;--btext:#FFB45A}:root[data-theme="dark"] .k-rocket{--bsoft:#2B1530;--btext:#D38BDB}
+.tab{color:var(--btext,var(--accent))}
+.tab[aria-checked="true"]{background:var(--brand);border-color:var(--brand);color:var(--bink)}
+.copy,.paste{color:var(--btext,var(--accent));background:var(--bsoft,var(--soft))}
+#s2 .sh .n{background:var(--brand,var(--accent));color:var(--bink,#fff)}
+#s2 input:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--bsoft)}
+#s2 input[aria-invalid="true"]{border-color:var(--err);box-shadow:0 0 0 3px color-mix(in srgb,var(--err) 18%,transparent)}
+#s2 .cta{background:var(--brand,var(--accent));color:var(--bink,#fff);transition:background .2s}
+#s2 #steps{border-top:3px solid var(--brand,var(--accent))}
+#s2 :focus-visible{outline-color:var(--brand,var(--accent))}
+.plan[disabled]{opacity:.55;cursor:default;box-shadow:none}
+.stat{margin:0 0 16px;padding:12px 14px;border-radius:14px;background:var(--soft);color:var(--accent);font-weight:700;font-size:.9rem;line-height:1.45}
+.stat div+div{margin-top:2px}
+.pinfo{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section class="screen" id="s1">
+  <div class="appbar"><div class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5v19L21 12z"/></svg></div><span class="word" id="brandW">Vidz</span><button class="back x" id="close" type="button" aria-label="Close and go back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="content">
+    <h1> Premium </h1>
+    <div class="stat" id="myStat" hidden></div>
+    <p class="sub">Choose the plan that suits you</p>
+    <section class="card" aria-label="Premium benefits">
+      <div class="perk"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg></div><div><b>Ad-free experience</b><span>No ads anywhere in the app</span></div></div>
+      <div class="perk"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg></div><div><b>Paid dramas</b><span>Included free with the 1 year plan. Bought separately with other plans.</span></div></div>
+    </section>
+    <h2>Premium plans</h2>
+    <div class="sum" id="sumBox" aria-live="polite" hidden><div><small>Selected plan</small><span class="n" id="sumName"></span></div><span class="p" id="sumPrice"></span><p class="note" id="sumNote"></p></div>
+    <div class="plans" id="plans" role="radiogroup" aria-label="Premium plans"></div>
+    <h2>Payment history</h2>
+    <div class="hist" id="history"></div>
+  </div>
+  <div class="bar" id="subBar" hidden><button class="cta" id="subscribe" type="button">Subscribe</button><p class="fine">You can review everything before you pay</p></div>
+</section>
+
+<section class="screen" id="s2" hidden>
+  <div class="appbar"><button class="back" id="back" type="button" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button><span class="apptitle">Checkout</span></div>
+  <div class="content">
+    <h2>Order summary</h2>
+    <div class="order">
+      <div class="oh">
+        <div class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5v19L21 12z"/></svg></div>
+        <div class="t"><b id="brandP">Vidz Premium</b><span id="oPlan"></span></div>
+        <strong id="oPrice"></strong>
+      </div>
+      <ul class="inc">
+        <li><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></i>Ad-free experience</li>
+        <li id="oDr"><i id="oDrIc"></i><span id="oDrTxt"></span></li>
+      </ul>
+      <div class="otot"><span>Total due</span><b id="oTotal"></b></div>
+    </div>
+    <div class="sh"><span class="n">1</span><div><h3>Send the money</h3></div></div>
+    <div class="tabs" id="tabs" role="radiogroup" aria-label="Payment method"></div>
+    <div class="box" id="steps"></div>
+    <div class="sh"><span class="n">2</span><div><h3>Confirm your payment</h3><p>Enter the details from your payment.</p></div></div>
+    <div class="box"><div class="fields" id="fields"></div>
+      <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Your information is kept private and used only to verify this payment.</div>
+    </div>
+  </div>
+  <div class="bar"><p class="err" id="err" role="alert"></p><button class="cta" id="pay" type="button">Submit payment</button><p class="fine">Premium will be activated once we verify your payment.</p></div>
+</section>
+
+<section class="screen" id="s3" hidden>
+  <div class="content done">
+    <div class="ok" id="stIcon"></div>
+    <h1 id="stTitle"></h1>
+    <p class="sub" id="stSub"></p>
+    <div class="card">
+      <div class="row"><span>Plan</span><b id="dName"></b></div>
+      <div class="row"><span>Method</span><b id="dMethod"></b></div>
+      <div class="row"><span>Transaction ID</span><b id="dTrx"></b></div>
+      <div class="row total"><span>Amount</span><b id="dPaid"></b></div>
+    </div>
+    <div class="card"><ol class="track" id="track"></ol></div>
+  </div>
+  <div class="bar"><button class="cta" id="finish" type="button"></button><p class="fine" id="stFine"></p></div>
+</section>
+
+</div>
+<script>
+var LANG="en",CUR="৳",BRAND="Vidz";
+var BN={"Close and go back to home":"বন্ধ করে হোমে ফিরুন","Premium":"প্রিমিয়াম","Choose the plan that suits you":"আপনার জন্য সবচেয়ে ভালো প্যাকেজটি বেছে নিন","Premium benefits":"প্রিমিয়ামের সুবিধা","Ad-free experience":"অ্যাডমুক্ত অভিজ্ঞতা","No ads anywhere in the app":"অ্যাপের কোথাও কোনো অ্যাড নেই","Paid dramas":"পেইড ড্রামা","Included free with the 1 year plan. Bought separately with other plans.":"১ বছরের প্যাকেজে ফ্রি পাবেন। অন্য প্যাকেজে আলাদা করে কিনতে হয়।","Premium plans":"প্রিমিয়াম প্যাকেজ","Selected plan":"বেছে নেওয়া প্যাকেজ","Payment history":"পেমেন্টের ইতিহাস","Subscribe":"সাবস্ক্রাইব করুন","You can review everything before you pay":"টাকা দেওয়ার আগে সবকিছু আবার দেখে নিতে পারবেন","Back":"পেছনে","Checkout":"চেকআউট","Order summary":"অর্ডারের সারসংক্ষেপ","Total due":"মোট দিতে হবে","Send the money":"টাকা পাঠান","Confirm your payment":"পেমেন্ট নিশ্চিত করুন","Enter the details from your payment.":"আপনার পেমেন্টের তথ্য লিখুন।","Payment method":"পেমেন্ট মাধ্যম","Your information is kept private and used only to verify this payment.":"আপনার তথ্য গোপন থাকবে, শুধু এই পেমেন্ট যাচাইয়ে ব্যবহার হবে।","Submit payment":"পেমেন্ট জমা দিন","Premium will be activated once we verify your payment.":"পেমেন্ট যাচাই হলেই প্রিমিয়াম চালু হবে।","Plan":"প্যাকেজ","Method":"মাধ্যম","Transaction ID":"ট্রানজেকশন আইডি","Amount":"পরিমাণ","All paid dramas and episodes included":"সব পেইড ড্রামা ও পর্ব অন্তর্ভুক্ত","Paid dramas are bought separately":"পেইড ড্রামা আলাদা করে কিনতে হয়","Copied":"কপি হয়েছে","Copy":"কপি","Paste":"পেস্ট","Coming soon":"শীঘ্রই আসছে","Payment is not available right now. Please try again later.":"এখন পেমেন্ট নেওয়া যাচ্ছে না। পরে আবার চেষ্টা করুন।","Amount to send":"যত টাকা পাঠাবেন","Send Money to ({m} Personal)":"এই নম্বরে টাকা পাঠান ({m} পার্সোনাল)","Cash Out to ({m} Agent)":"এই এজেন্ট নম্বরে Cash Out করুন ({m})","Pay to ({m} Merchant)":"এই মার্চেন্ট নম্বরে পেমেন্ট করুন ({m})","Open the <b>{m}</b> app and choose <b>Send Money</b>.":"<b>{m}</b> অ্যাপ খুলে <b>Send Money</b> বেছে নিন।","Open the <b>{m}</b> app and choose <b>Cash Out</b>, then <b>From Agent</b>.":"<b>{m}</b> অ্যাপ খুলে <b>Cash Out</b>, তারপর <b>এজেন্ট থেকে</b> বেছে নিন।","Open the <b>{m}</b> app and choose <b>Payment</b>.":"<b>{m}</b> অ্যাপ খুলে <b>Payment</b> বেছে নিন।","Send exactly <b>{a}</b> to the number above.":"উপরের নম্বরে ঠিক <b>{a}</b> পাঠান।","Enter your number and the Transaction ID below.":"নিচে আপনার নম্বর আর ট্রানজেকশন আইডি লিখুন।","Your {m} number":"আপনার {m} নম্বর","You’ll find it in the {m} confirmation message.":"{m}-এর কনফার্মেশন মেসেজে পাবেন।","Enter your 11-digit {m} number.":"আপনার ১১ সংখ্যার {m} নম্বর লিখুন।","Enter the Transaction ID from your payment message.":"পেমেন্টের মেসেজ থেকে ট্রানজেকশন আইডি লিখুন।","No payments yet. Your purchases will appear here.":"এখনও কোনো পেমেন্ট নেই। আপনার কেনাকাটা এখানে দেখা যাবে।","Processing":"যাচাই চলছে","Approved":"অনুমোদিত","Rejected":"বাতিল","Processing your payment":"পেমেন্ট যাচাই চলছে","We’re verifying your transaction. Premium unlocks as soon as it’s approved.":"আমরা আপনার লেনদেন যাচাই করছি। অনুমোদন হলেই প্রিমিয়াম চালু হবে।","Back to home":"হোমে ফিরুন","You can leave this page. Your payment stays under review.":"আপনি এই পাতা ছেড়ে যেতে পারেন। পেমেন্ট যাচাই চলতে থাকবে।","Premium activated":"প্রিমিয়াম চালু হয়েছে","Thank you! Your payment is approved and ads are now removed.":"ধন্যবাদ! পেমেন্ট অনুমোদিত হয়েছে, এখন থেকে কোনো অ্যাড নেই।","Start watching":"দেখা শুরু করুন","Payment not verified":"পেমেন্ট যাচাই হয়নি","We couldn’t match this transaction. Please check the details and try again.":"এই লেনদেনটি মেলাতে পারিনি। তথ্য দেখে আবার চেষ্টা করুন।","Try again":"আবার চেষ্টা করুন","Make sure the amount, number and Transaction ID are correct.":"পরিমাণ, নম্বর ও ট্রানজেকশন আইডি ঠিক আছে কিনা দেখে নিন।","Payment submitted":"পেমেন্ট জমা হয়েছে","Admin verification":"যাচাই চলছে","Verification failed":"যাচাই হয়নি","Returning to Premium in {n}s":"{n} সেকেন্ডে প্রিমিয়াম পাতায় ফিরছে","Submitting…":"জমা হচ্ছে…","Could not submit. Please try again.":"জমা দেওয়া যায়নি। আবার চেষ্টা করুন।","{name} plan · {sub}":"{name} প্যাকেজ · {sub}"};
+function T(s){return LANG==="bn"&&BN[s]?BN[s]:s}
+function F(s,o){return T(s).replace(/\{(\w+)\}/g,function(_,k){return o[k]})}
+function M(p){return CUR+p}
+function E(x){return String(x==null?"":x).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]})}
+var trDone=false;
+function trStatic(){
+  if(LANG!=="bn"||trDone)return;trDone=true;
+  var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,L=[];
+  while(n=w.nextNode())L.push(n);
+  L.forEach(function(n){var t=n.nodeValue.trim();if(t&&BN[t])n.nodeValue=n.nodeValue.replace(t,BN[t])});
+  document.querySelectorAll("[aria-label]").forEach(function(e){var a=e.getAttribute("aria-label");if(BN[a])e.setAttribute("aria-label",BN[a])});
+}
+var PLANS=[];
+var NUMBERS={};
+var METHODS=[];
+var INFO="";
+var sel="",meth="bkash",vals={phone:"",trx:""};
+var $=function(i){return document.getElementById(i)};
+function plan(){return PLANS.filter(function(p){return p.id===sel})[0]}
+function method(){return METHODS.filter(function(m){return m.id===meth})[0]}
+function show(id){["s1","s2","s3"].forEach(function(s){$(s).hidden=s!==id});window.scrollTo(0,0)}
+
+function renderPlans(){
+  var box=$("plans");box.innerHTML="";
+  var n=PLANS.length;box.style.gridTemplateColumns="repeat("+(n===3?3:n===1?1:2)+",1fr)";
+  PLANS.forEach(function(p){
+    var b=document.createElement("button");
+    b.type="button";b.className="plan";b.setAttribute("role","radio");
+    b.setAttribute("aria-checked",String(p.id===sel));
+    if(p.soon)b.disabled=true;
+    var d=document.createElement("span");d.className="d";d.textContent=p.name;
+    var t=document.createElement("span");t.className="t";t.textContent=p.soon?T("Coming soon"):p.sub;
+    b.appendChild(d);b.appendChild(t);
+    b.onclick=function(){if(p.soon)return;sel=p.id;renderPlans()};
+    box.appendChild(b);
+  });
+  if(sel&&!plan())sel="";
+  var has=!!plan();
+  $("sumBox").hidden=!has;$("subBar").hidden=!has;
+  if(has){$("sumName").textContent=plan().name+" · "+plan().sub;
+  $("sumPrice").textContent=M(plan().price);$("sumNote").textContent=T(plan().dramas?"All paid dramas and episodes included":"Paid dramas are bought separately")}
+}
+
+function avail(){return METHODS.filter(function(m){return NUMBERS[m.id]})}
+function copyText(t,btn){
+  var done=function(){var o=btn.textContent;btn.textContent=T("Copied");setTimeout(function(){btn.textContent=o},1500)};
+  function fallback(){var x=document.createElement("textarea");x.value=t;x.style.position="fixed";x.style.opacity="0";document.body.appendChild(x);x.select();try{document.execCommand("copy");done()}catch(e){}document.body.removeChild(x)}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fallback)}else{fallback()}
+}
+var VCH='<svg class="vchk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+function syncValid(){
+  var ok={phone:/^01\d{9}$/.test(vals.phone),trx:/^[A-Z0-9]{6,20}$/.test(vals.trx)};
+  document.querySelectorAll(".vchk").forEach(function(e){e.classList.toggle("on",!!ok[e.getAttribute("data-for")])});
+  var p=$("paste");if(p)p.hidden=vals.trx.length>0;
+}
+function renderCheckout(){
+  var list=avail(),tabs=$("tabs"),steps=$("steps"),f=$("fields");
+  tabs.innerHTML="";
+  if(!list.length){steps.innerHTML='<p class="none">'+T("Payment is not available right now. Please try again later.")+'</p>'+(INFO?'<div class="pinfo" id="pinfo"></div>':"");if(INFO)$("pinfo").textContent=INFO;f.innerHTML="";$("pay").disabled=true;return}
+  $("pay").disabled=false;
+  if(!NUMBERS[meth])meth=list[0].id;
+  list.forEach(function(m){
+    var b=document.createElement("button");
+    b.type="button";b.className="tab k-"+m.id;b.textContent=m.name;b.setAttribute("role","radio");
+    b.setAttribute("aria-checked",String(m.id===meth));
+    b.onclick=function(){meth=m.id;$("err").textContent="";renderCheckout()};
+    tabs.appendChild(b);
+  });
+  var m=method(),amt=M(plan().price);$("s2").className="screen k-"+m.id;
+  var ty=m.type==="agent"?"agent":m.type==="merchant"?"merchant":"personal";
+  var KL={personal:"Send Money to ({m} Personal)",agent:"Cash Out to ({m} Agent)",merchant:"Pay to ({m} Merchant)"}[ty];
+  var KS={personal:"Open the <b>{m}</b> app and choose <b>Send Money</b>.",agent:"Open the <b>{m}</b> app and choose <b>Cash Out</b>, then <b>From Agent</b>.",merchant:"Open the <b>{m}</b> app and choose <b>Payment</b>."}[ty];
+  steps.innerHTML='<div class="kv"><div><small>'+F(KL,{m:m.name})+'</small><span class="v">'+NUMBERS[m.id]+'</span></div><button type="button" class="copy" data-c="'+NUMBERS[m.id]+'">'+T("Copy")+'</button></div>'
+   +'<div class="kv"><div><small>'+T("Amount to send")+'</small><span class="v">'+amt+'</span></div><button type="button" class="copy" data-c="'+plan().price.replace(/,/g,"")+'">'+T("Copy")+'</button></div>'
+   +'<ol class="steps"><li>'+F(KS,{m:m.name})+'</li><li>'+F("Send exactly <b>{a}</b> to the number above.",{a:amt})+'</li><li>'+T("Enter your number and the Transaction ID below.")+'</li></ol>'
+   +(INFO?'<div class="pinfo" id="pinfo"></div>':"");
+  if(INFO)$("pinfo").textContent=INFO;
+  steps.querySelectorAll(".copy").forEach(function(c){c.onclick=function(){copyText(c.getAttribute("data-c"),c)}});
+  f.innerHTML='<div><label for="f-phone">'+F("Your {m} number",{m:m.name})+'</label><div class="inp rr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/></svg><input id="f-phone" data-k="phone" inputmode="numeric" autocomplete="tel" placeholder="01XXXXXXXXX" maxlength="11" value="'+E(vals.phone)+'">'+VCH.replace("<svg","<svg data-for=\"phone\"")+'</div></div>'
+   +'<div><label for="f-trx">'+T("Transaction ID")+'</label><div class="inp rp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg><input id="f-trx" data-k="trx" autocapitalize="characters" autocomplete="off" placeholder="e.g. 9A7B3C2D1E" maxlength="20" value="'+E(vals.trx)+'"><button type="button" class="paste" id="paste">'+T("Paste")+'</button>'+VCH.replace("<svg","<svg data-for=\"trx\"")+'</div><p class="help">'+F("You’ll find it in the {m} confirmation message.",{m:m.name})+'</p></div>';
+  syncValid();
+  var pb=$("paste");
+  if(pb)pb.onclick=function(){if(!(navigator.clipboard&&navigator.clipboard.readText)){var i0=$("f-trx");if(i0)i0.focus();return}
+    if(navigator.clipboard&&navigator.clipboard.readText){
+      navigator.clipboard.readText().then(function(t){var v=(t||"").replace(/[^A-Za-z0-9]/g,"").toUpperCase().slice(0,20);var i=$("f-trx");i.value=v;vals.trx=v;i.setAttribute("aria-invalid","false");syncValid()}).catch(function(){var i1=$("f-trx");if(i1)i1.focus()});
+    }
+  };
+}
+$("fields").addEventListener("input",function(e){
+  var k=e.target.getAttribute("data-k");if(!k)return;
+  var v=e.target.value;
+  if(k==="phone")v=v.replace(/\D/g,"");
+  if(k==="trx")v=v.replace(/[^A-Za-z0-9]/g,"").toUpperCase();
+  e.target.value=v;vals[k]=v;e.target.setAttribute("aria-invalid","false");$("err").textContent="";syncValid();
+});
+function validate(){
+  if(!/^01\d{9}$/.test(vals.phone))return F("Enter your 11-digit {m} number.",{m:method().name});
+  if(!/^[A-Z0-9]{6,20}$/.test(vals.trx))return T("Enter the Transaction ID from your payment message.");
+  return "";
+}
+var status="pending",lastData=null,lastItem=null,poll=null;
+/* Payment history. In your app, load it from your server with window.setPaymentHistory([{id,plan,amount,method,transactionId,status,date}]) where status is "pending" | "approved" | "rejected". Here it is only remembered in this browser. */
+var PAYS=[];
+function saveHist(){try{if(typeof window.onPaymentHistory==="function")window.onPaymentHistory(JSON.parse(JSON.stringify(PAYS)))}catch(e){}}
+var IC={
+ pending:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ approved:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+ rejected:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+};
+var LBL={pending:"Processing",approved:"Approved",rejected:"Rejected"};
+function fmtDate(v){try{return new Date(v).toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"})}catch(e){return ""}}
+function renderHistory(){
+  var box=$("history");
+  if(!PAYS.length){box.innerHTML='<div class="empty">'+T("No payments yet. Your purchases will appear here.")+'</div>';return}
+  box.innerHTML=PAYS.map(function(h){
+    var st=LBL[h.status]?h.status:"pending";
+    return '<div class="hi"><div class="hic '+st+'">'+IC[st]+'</div><div class="mid"><b>'+E(h.plan)+'</b><span>'+E(h.method)+' · '+fmtDate(h.date)+'</span><span>TrxID '+E(h.transactionId)+'</span></div><div class="end"><b>'+E(CUR)+E(h.amount)+'</b><span class="pill '+st+'">'+T(LBL[st])+'</span></div></div>';
+  }).join("");
+}
+window.setPaymentHistory=function(list){PAYS=Array.isArray(list)?list:[];saveHist();renderHistory();startPoll()};
+var CHK='<svg viewBox="0 0 24 24" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',XX='<svg viewBox="0 0 24 24" fill="none" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+function stopPoll(){if(poll){clearInterval(poll);poll=null}}
+/* Admin approves/rejects -> call window.setPaymentStatus("approved") or ("rejected") from your app. Optional: define window.checkPaymentStatus(data) returning "pending" | "approved" | "rejected" and the page checks it every 8 seconds. */
+function setStatus(st){
+  status=st;var ic=$("stIcon"),TX={
+   pending:["Processing your payment","We’re verifying your transaction. Premium unlocks as soon as it’s approved.","Back to home","You can leave this page. Your payment stays under review."],
+   approved:["Premium activated","Thank you! Your payment is approved and ads are now removed.","Start watching",""],
+   rejected:["Payment not verified","We couldn’t match this transaction. Please check the details and try again.","Try again","Make sure the amount, number and Transaction ID are correct."]
+  }[st];
+  ic.className="ok"+(st==="pending"?" pend":st==="rejected"?" bad":"");
+  ic.innerHTML=st==="pending"?'<div class="spin"></div>':st==="approved"?CHK.replace("<svg","<svg stroke=\"#fff\""):XX.replace("<svg","<svg stroke=\"#fff\"");
+  $("stTitle").textContent=T(TX[0]);$("stSub").textContent=T(TX[1]);$("finish").textContent=T(TX[2]);$("stFine").textContent=T(TX[3]);
+  var steps=[["Payment submitted","done"],["Admin verification",st==="pending"?"cur":st==="approved"?"done":"bad"],["Premium activated",st==="approved"?"done":"todo"]];
+  if(st==="rejected")steps[1][0]="Verification failed";
+  $("track").innerHTML=steps.map(function(x){return '<li class="'+x[1]+'"><i>'+(x[1]==="done"?CHK:x[1]==="bad"?XX:"")+'</i>'+T(x[0])+'</li>'}).join("");
+  if(lastItem){lastItem.status=st;saveHist();renderHistory()}
+  if(st==="approved"&&typeof window.onPremiumActivated==="function")window.onPremiumActivated(lastData);
+}
+function findItem(ref){
+  if(ref&&typeof ref==="object")ref=ref.id||ref.transactionId;
+  return PAYS.filter(function(h){return ref&&(h.id===ref||h.transactionId===ref)})[0]||PAYS.filter(function(h){return h.status==="pending"})[0];
+}
+/* Call when the admin decides: window.setPaymentStatus("approved") or ("rejected"). Optional 2nd argument: the payment id or transactionId (default: the latest processing payment). */
+window.setPaymentStatus=function(st,ref){
+  if(["approved","rejected","pending"].indexOf(st)<0)return;
+  var it=findItem(ref);if(!it)return;
+  if(it===lastItem){setStatus(st)}
+  else{it.status=st;saveHist();renderHistory();if(st==="approved"&&typeof window.onPremiumActivated==="function")window.onPremiumActivated(it)}
+};
+function tick(){
+  PAYS.filter(function(h){return h.status==="pending"}).forEach(function(it){
+    Promise.resolve(window.checkPaymentStatus(it)).then(function(r){if(r==="approved"||r==="rejected")window.setPaymentStatus(r,it.id)}).catch(function(){});
+  });
+}
+function startPoll(){if(poll||typeof window.checkPaymentStatus!=="function")return;poll=setInterval(tick,8000);tick()}
+var backT=null;
+function stopBack(){if(backT){clearInterval(backT);backT=null}}
+/* While the payment is still processing, return to the Go premium page after 30 seconds. */
+function startBack(){
+  stopBack();var n=30;
+  function tickBack(){
+    if(status!=="pending"||$("s3").hidden){stopBack();return}
+    $("stFine").textContent=F("Returning to Premium in {n}s",{n:n});
+    if(n===0){stopBack();sel="";renderPlans();show("s1");return}
+    n--;
+  }
+  tickBack();backT=setInterval(tickBack,1000);
+}
+window.setConfig=function(c){
+  c=c||{};if(c.lang)LANG=c.lang;if(c.cur)CUR=c.cur;if(c.brand)BRAND=c.brand;
+  $("brandW").textContent=BRAND;$("brandP").textContent=BRAND+" "+T("Premium");
+  if(c.theme==="light"||c.theme==="dark")document.documentElement.setAttribute("data-theme",c.theme);else document.documentElement.removeAttribute("data-theme");
+  trStatic();renderPlans();renderHistory();
+};
+window.setPlans=function(list){PLANS=Array.isArray(list)?list:[];if(sel&&!plan())sel="";renderPlans()};
+window.setMethods=function(list){METHODS=[];NUMBERS={};(list||[]).forEach(function(m){if(m&&m.id&&m.num){METHODS.push({id:m.id,name:m.name,type:m.type});NUMBERS[m.id]=String(m.num)}});if(!$("s2").hidden)renderCheckout()};
+window.setPayInfo=function(t){INFO=String(t||"")};
+window.setPremiumStatus=function(a){var e=$("myStat");e.innerHTML="";(Array.isArray(a)?a:[]).filter(Boolean).forEach(function(x){var d=document.createElement("div");d.textContent=x;e.appendChild(d)});e.hidden=!e.firstChild};
+/* Called when the user submits. Connect it to your app: define window.onPaymentSubmit(data) (may return a Promise), or it posts to React Native / Flutter / Android if present. */
+function notifyApp(d){
+  if(typeof window.onPaymentSubmit==="function")return Promise.resolve(window.onPaymentSubmit(d));
+  if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:"payment_submitted",data:d}));
+  else if(window.flutter_inappwebview)window.flutter_inappwebview.callHandler("paymentSubmitted",d);
+  else if(window.Android&&window.Android.paymentSubmitted)window.Android.paymentSubmitted(JSON.stringify(d));
+  return new Promise(function(r){setTimeout(r,900)});
+}
+$("subscribe").onclick=function(){
+  $("oPlan").textContent=F("{name} plan · {sub}",{name:plan().name,sub:plan().sub});$("oPrice").textContent=M(plan().price);
+  $("oDr").className=plan().dramas?"on":"off";
+  $("oDrIc").innerHTML=plan().dramas?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M6 12h12"/></svg>';
+  $("oDrTxt").textContent=T(plan().dramas?"All paid dramas and episodes included":"Paid dramas are bought separately");$("oTotal").textContent=M(plan().price);
+  $("err").textContent="";renderCheckout();show("s2");
+};
+$("back").onclick=function(){show("s1")};
+$("pay").onclick=function(){
+  var e=validate();$("err").textContent=e;
+  var bad=!/^01\d{9}$/.test(vals.phone)?"phone":(!/^[A-Z0-9]{6,20}$/.test(vals.trx)?"trx":"");
+  document.querySelectorAll("#fields input").forEach(function(i){i.setAttribute("aria-invalid",String(i.getAttribute("data-k")===bad))});
+  if(e)return;
+  var b=$("pay"),d={plan:plan().name,planId:plan().id,days:plan().days,amount:plan().price.replace(/,/g,""),method:method().id,senderNumber:vals.phone,transactionId:vals.trx};
+  b.disabled=true;b.textContent=T("Submitting…");
+  notifyApp(d).then(function(r){
+    $("dName").textContent=plan().name;$("dMethod").textContent=method().name;$("dTrx").textContent=vals.trx;$("dPaid").textContent=M(plan().price);
+    vals.trx="";lastData=d;
+    lastItem={id:(r&&r.id)||("p"+Date.now()),plan:plan().name,amount:plan().price,method:method().name,transactionId:d.transactionId,status:"pending",date:new Date().toISOString()};
+    PAYS.unshift(lastItem);saveHist();renderHistory();
+    setStatus("pending");show("s3");startPoll();startBack();
+  },function(){$("err").textContent=T("Could not submit. Please try again.")}).then(function(){b.disabled=false;b.textContent=T("Submit payment")});
+};
+/* Leave the premium screen and return to the app's home page.
+   Connect ONE of these to your app (the first one that exists is used). */
+function exitPremium(){
+  if(typeof window.onClosePremium==="function"){window.onClosePremium();return}
+  if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage("close_premium");return}
+  if(window.flutter_inappwebview){window.flutter_inappwebview.callHandler("closePremium");return}
+  if(window.Android&&window.Android.closePremium){window.Android.closePremium();return}
+  if(window.history.length>1){window.history.back()}
+}
+$("close").onclick=exitPremium;
+$("finish").onclick=function(){
+  stopBack();
+  if(status==="rejected"){show("s2");return}
+  sel="";renderPlans();show("s1");exitPremium();
+};
+renderPlans();renderHistory();startPoll();
+<\/script>
+</body>
+</html>
+</script>
+<div class="ov" id="gate" hidden></div>
+<div id="layer"></div>
+
+<script>
+/* ============ CONNECT TO FIREBASE ============
+   Paste the config object from Firebase Console > Project settings > Your apps > Web app.
+   Example: { apiKey:"...", authDomain:"...", projectId:"...", appId:"..." }
+   While it is null, the app runs on the sample dramas below and nothing is saved online. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAXjnBy0s508ml-0hYV3q9QdKKBo66gmU8",
+  authDomain: "vidzapp-71023.firebaseapp.com",
+  projectId: "vidzapp-71023",
+  storageBucket: "vidzapp-71023.firebasestorage.app",
+  messagingSenderId: "776875458195",
+  appId: "1:776875458195:web:0a9bf33d6ff36940335766"
+};
+
+/* ============ SAMPLE DATA (used only when FIREBASE_CONFIG is null) ============ */
+let D = [
+ {id:1, t:"Midnight Tenant", g:"Thriller", eps:42, v:3400000, h:[265,300], n:1, o:0, s:"A night-shift nurse rents a quiet flat, then learns the previous tenant left more than furniture behind."},
+ {id:2, t:"The Lantern Pact", g:"Fantasy", eps:58, v:5100000, h:[28,350], n:0, o:1, s:"Two rival villages share one festival of lights. When the lanterns go dark, a forgotten promise comes due."},
+ {id:3, t:"Salt & Saffron", g:"Romance", eps:36, v:2200000, h:[12,340], n:0, o:0, s:"A street-food cook and a food critic strike a deal: one honest review, one season of cooking lessons."},
+ {id:4, t:"Second Chance Sunday", g:"Romance", eps:30, v:1100000, h:[200,250], n:1, o:0, s:"Every Sunday, two exes meet at the same market stall to split custody of a very stubborn parrot."},
+ {id:5, t:"Monsoon Heir", g:"Family", eps:55, v:4000000, h:[170,215], n:0, o:0, s:"When the family tea estate floods, a long-lost granddaughter returns with a ledger nobody wanted opened."},
+ {id:6, t:"Paper Crown", g:"Fantasy", eps:48, v:900000, h:[45,15], n:0, o:1, s:"A courier carrying a folded origami crown discovers it points to the only throne still empty."},
+ {id:7, t:"The Quiet Clause", g:"Mystery", eps:40, v:1800000, h:[150,200], n:0, o:0, s:"A junior lawyer finds a single missing sentence in a will, and three families who need it to stay missing."},
+ {id:8, t:"Rooftop Rivals", g:"Comedy", eps:32, v:2700000, h:[330,280], n:1, o:1, s:"Two neighbours fight over one rooftop, one water tank and one unreasonably loud wedding band."},
+ {id:9, t:"Tea Stall Billionaire", g:"Comedy", eps:50, v:6300000, h:[95,160], n:0, o:0, s:"The man who serves the best chai in the city has a secret: he owns the building, and the three next to it."},
+ {id:10, t:"Echo Station", g:"Thriller", eps:44, v:1500000, h:[230,190], n:0, o:1, s:"A radio operator on a remote hill station keeps hearing his own voice, one broadcast ahead."},
+ {id:11, t:"Glass Harbor", g:"Mystery", eps:38, v:780000, h:[195,285], n:1, o:0, s:"A ferry that never docks, a passenger list that keeps changing, and one detective who has a ticket."},
+ {id:12, t:"Velvet Verdict", g:"Romance", eps:52, v:3000000, h:[350,20], n:0, o:0, s:"A judge and a defence lawyer have argued for ten years. Now they are seated at the same wedding table."}
+];
+const GENRES = ["Romance","Thriller","Fantasy","Comedy","Family","Mystery"];
+D.forEach(d=>{ d.id=String(d.id); d.img=''; d.feat=0; d.top=0; d.free=undefined; });
+if(FIREBASE_CONFIG) D=[];
+
+const L = {
+ en:{search:"Search dramas",trending:"Trending",new:"New",originals:"Originals",romance:"Romance",thriller:"Thriller & Mystery",
+  top10:"Top 10",allDramas:"All dramas",results:"Results",none:"No drama found",home:"Home",list:"My List",me:"Me",saved:"Saved",recent:"Recently watched",
+  emptySaved:"Nothing saved yet",emptySavedS:"Tap the bookmark on any drama to keep it here.",emptyRecent:"No history yet",emptyRecentS:"Episodes you watch will show up here.",
+  rec:"Recommended for you",guest:"Guest",login:"Log in",history:"History",language:"Language",settings:"Theme",contact:"Contact us",
+  play:"Play",cont:"Continue",episodes:"Episodes",eps:"episodes",views:"views",save:"Save",saved2:"Saved",share:"Share",speed:"Speed",
+  auto:"Auto",light:"Light",dark:"Dark",copied:"Link copied",added:"Added to My List",removed:"Removed from My List",
+  demoLogin:"Demo login. No server is connected yet, so your name is kept on this device only.",name:"Your name",cont2:"Continue",
+  welcome:"Welcome",contactTxt:"support@vidz.example",placeholder:"Placeholder episode. Add your video link in VIDEO_URL.",ep:"EP",close:"Close",tapEp:"Tap an episode number to watch it",total:"Total",clearHist:"Clear history",histCleared:"History cleared",logout:"Log out",loggedOut:"Logged out",setT:"Settings",chkUpd:"Check update",about:"About us",privacy:"Privacy Policy",terms:"User Agreement",privSet:"Privacy Settings",
+  checking:"Checking for updates…",upToDate:"You are on the latest version.",ver:"Version",
+  aboutTxt:"Vidz is a short drama app. Watch stories in quick episodes, save your favourites and pick up where you left off.",
+  privTxt:"We store your saved list, watch history and Gmail address on your device to run the app. We do not sell your data. Sample text: replace this with your real privacy policy before you publish.",
+  termsTxt:"By using Vidz you agree to use the app lawfully and not copy or redistribute its content. Sample text: replace this with your real user agreement before you publish.",
+  saveHistLbl:"Save watch history",saveHistSub:"Turn off to stop recording episodes you watch.",wipe:"Delete my data on this device",wiped:"Your data was deleted",back:"Back",
+  notif:"Notifications",markRead:"Mark all as read",notifOff:"Notifications are off",turnOn:"Turn on",notifLbl:"Allow notifications",
+  notifSub:"Get alerts about new episodes and new dramas.",notifPush:"Alerts on your phone lock screen work only in the installed Android app.",
+  notifNone:"No notifications",swipeHint:"Swipe a read notification left or right to delete it.",notifDeleted:"Notification deleted",
+
+  gmailBad:"Enter a valid email address, like name@gmail.com",loginNote:"Enter your email to log in. Each email keeps its own Vidz ID."},
+ bn:{search:"ড্রামা খুঁজুন",trending:"ট্রেন্ডিং",new:"নতুন",originals:"অরিজিনাল",romance:"রোমান্স",thriller:"থ্রিলার ও রহস্য",
+  top10:"শীর্ষ ১০",allDramas:"সব ড্রামা",results:"ফলাফল",none:"কোনো ড্রামা পাওয়া যায়নি",home:"হোম",list:"আমার তালিকা",me:"আমি",saved:"সেভ করা",recent:"সম্প্রতি দেখা",
+  emptySaved:"এখনও কিছু সেভ করা হয়নি",emptySavedS:"যেকোনো ড্রামার বুকমার্কে ট্যাপ করলে এখানে জমা হবে।",emptyRecent:"এখনও কিছু দেখা হয়নি",emptyRecentS:"যে পর্বগুলো দেখবেন সেগুলো এখানে দেখাবে।",
+  rec:"আপনার জন্য সুপারিশ",guest:"অতিথি",login:"লগইন",history:"হিস্ট্রি",language:"ভাষা",settings:"থিম",contact:"যোগাযোগ",
+  play:"দেখুন",cont:"চালিয়ে যান",episodes:"পর্ব",eps:"পর্ব",views:"ভিউ",save:"সেভ",saved2:"সেভ হয়েছে",share:"শেয়ার",speed:"গতি",
+  auto:"অটো",light:"লাইট",dark:"ডার্ক",copied:"লিংক কপি হয়েছে",added:"তালিকায় যোগ হয়েছে",removed:"তালিকা থেকে সরানো হয়েছে",
+  demoLogin:"ডেমো লগইন। এখনও কোনো সার্ভার যুক্ত নেই, তাই নামটি শুধু এই ডিভাইসে থাকবে।",name:"আপনার নাম",cont2:"এগিয়ে যান",
+  welcome:"স্বাগতম",contactTxt:"support@vidz.example",placeholder:"ডামি পর্ব। VIDEO_URL-এ আপনার ভিডিওর লিংক দিন।",ep:"পর্ব",close:"বন্ধ",tapEp:"দেখতে যেকোনো পর্বের নম্বরে ট্যাপ করুন",total:"মোট",clearHist:"হিস্ট্রি মুছুন",histCleared:"হিস্ট্রি মুছে ফেলা হয়েছে",logout:"লগআউট",loggedOut:"লগআউট হয়েছে",gmailBad:"সঠিক ইমেইল দিন, যেমন name@gmail.com",loginNote:"লগইন করতে আপনার ইমেইল দিন। প্রতিটা ইমেইলের জন্য একটা নির্দিষ্ট Vidz ID থাকবে।",
+  setT:"সেটিংস",chkUpd:"আপডেট চেক করুন",about:"আমাদের সম্পর্কে",privacy:"প্রাইভেসি পলিসি",terms:"ইউজার এগ্রিমেন্ট",privSet:"প্রাইভেসি সেটিংস",
+  checking:"আপডেট খোঁজা হচ্ছে…",upToDate:"আপনি সর্বশেষ ভার্সনে আছেন।",ver:"ভার্সন",
+  aboutTxt:"Vidz একটা শর্ট ড্রামা অ্যাপ। ছোট ছোট পর্বে গল্প দেখুন, প্রিয় ড্রামা সেভ করুন, আর যেখানে থামিয়েছিলেন সেখান থেকে আবার শুরু করুন।",
+  privTxt:"অ্যাপ চালাতে আপনার সেভ করা তালিকা, দেখার হিস্ট্রি ও Gmail ঠিকানা আপনার ডিভাইসে জমা থাকে। আমরা আপনার তথ্য বিক্রি করি না। নমুনা লেখা: প্রকাশের আগে এটা আপনার আসল প্রাইভেসি পলিসি দিয়ে বদলে নিন।",
+  termsTxt:"Vidz ব্যবহার করলে আপনি আইনসম্মতভাবে অ্যাপ ব্যবহার করতে এবং এর কনটেন্ট কপি বা ছড়িয়ে না দিতে সম্মত হচ্ছেন। নমুনা লেখা: প্রকাশের আগে এটা আপনার আসল ইউজার এগ্রিমেন্ট দিয়ে বদলে নিন।",
+  saveHistLbl:"দেখার হিস্ট্রি সেভ করুন",saveHistSub:"বন্ধ করলে আপনি যে পর্ব দেখবেন তা আর জমা হবে না।",wipe:"এই ডিভাইসে আমার তথ্য মুছুন",wiped:"আপনার তথ্য মুছে ফেলা হয়েছে",back:"পেছনে",
+  notif:"নোটিফিকেশন",markRead:"সব পড়া হয়েছে চিহ্নিত করুন",notifOff:"নোটিফিকেশন বন্ধ আছে",turnOn:"চালু করুন",notifLbl:"নোটিফিকেশন অনুমতি দিন",
+  notifSub:"নতুন পর্ব ও নতুন ড্রামার খবর পান।",notifPush:"ফোনের লক স্ক্রিনে নোটিফিকেশন শুধু ইনস্টল করা Android অ্যাপে কাজ করবে।",
+  notifNone:"কোনো নোটিফিকেশন নেই",swipeHint:"পড়া নোটিফিকেশন ডানে বা বামে সোয়াইপ করলে মুছে যাবে।",notifDeleted:"নোটিফিকেশন মুছে ফেলা হয়েছে"}
+};
+
+Object.assign(L.en,{
+  placeholder:"Placeholder episode. Add the video link in Vidz Admin.",
+  loading:"Loading…",loadErr:"Could not load dramas",retry:"Try again",noDramas:"No dramas yet",noDramasS:"Check back soon.",
+  lockedT:"Episode locked",ty_personal:"Personal",ty_agent:"Agent",ty_merchant:"Merchant",how_personal:"Open the {m} app → Send Money → enter this number → enter the amount → confirm with your PIN.",how_agent:"Open the {m} app → Cash Out → From Agent → enter this agent number → enter the amount → confirm with your PIN.",how_merchant:"Open the {m} app → Payment → enter this merchant number → enter the amount → confirm with your PIN.",payNotReady:"The price and payment number are not set yet. You can send the request once they are.",n7:"7 days",n15:"15 days",n30:"1 month",n365:"1 year",k7:"Trial",k15:"Trial",k30:"Monthly",k365:"Best value",soonTag:"Coming soon",planSoon:"This plan will open soon.",premium:"Premium",premSub:"Remove all ads",premFrom:"Remove all ads · from {p}",premB1:"No ads anywhere in the app",premB2:"Episodes locked by ads open instantly",premB3:"Paid dramas are bought separately",soonPlans:"Plans are coming soon.",rmAds:"Remove ads",adFreeTill:"Ad-free until {d}",adFreeOn:"Ads are off",allTill:"All paid dramas unlocked until {d}",plansS:"Pay once and see no ads for the period you choose.",
+  d7:"7 days (trial)",d15:"15 days (trial)",d30:"1 month",d365:"1 year",payT:"Payment",payStep1:"1. Pay {a} to one of these numbers:",payStep2:"2. Enter the transaction ID (TrxID) you received:",trxPh:"TrxID",sendReq:"Send request",
+  payNote:"We check your payment and switch it on, usually within a few hours. Then tap Refresh.",copyNum:"Copy number",copied:"Copied",trxBad:"Enter the TrxID (at least 4 characters).",sentOk:"Request sent",sentSub:"We will switch it on after checking your payment. Tap Refresh to update.",
+  sendFail:"Could not send. Try again.",refresh:"Refresh my account",refreshed:"Account updated.",loginFirst:"Please log in with your email first, so we know who to unlock it for.",
+  buyDramaT:"Premium drama",buyDramaS:"Buy “{t}” to watch every episode. Free episodes: {f}.",buyFor:"Buying",noPay:"Payments are not set up yet.",lockedS:"Watch a short ad to unlock {n} episode(s).",watchAd:"Watch ad to unlock",noEps:"No episodes yet",
+  adTitle:"Advertisement",adDemo:"Sample ad. Real ads show in the Android app.",adWait:"Reward in {s}s",adDone:"Reward ready",adSkip:"Close (no reward)",adClaim:"Get reward",
+  adSkipped:"Ad closed early. Episode not unlocked.",adFail:"No ad available right now. Try again later.",unlocked:"Episode unlocked",
+  maintT:"Under maintenance",maintS:"Vidz is being updated. Please come back soon.",updT:"Update required",updS:"Please update Vidz to keep watching.",updBtn:"Update",
+  noUpdUrl:"No update link set yet.",blockedT:"Account blocked",blockedS:"This account cannot use Vidz. Contact support for help.",newVer:"A new version is available: {v}",
+  loginG:"Continue with Google",loginNoteG:"Sign in with your Google account. Your Vidz ID stays the same on every phone.",loginFail:"Login failed. Try again.",
+  fb:"Feedback",fbHint:"Tell us what to fix or add.",fbSend:"Send",fbThanks:"Thank you! Feedback sent.",fbLogin:"Log in to send feedback.",fbEmpty:"Write something first.",fbFail:"Could not send. Try again."
+});
+Object.assign(L.bn,{
+  placeholder:"ডামি পর্ব। Vidz Admin-এ ভিডিওর লিংক দিন।",
+  loading:"লোড হচ্ছে…",loadErr:"ড্রামা লোড করা যায়নি",retry:"আবার চেষ্টা করুন",noDramas:"এখনও কোনো ড্রামা নেই",noDramasS:"একটু পরে আবার দেখুন।",
+  lockedT:"পর্ব লক করা",ty_personal:"ব্যক্তিগত",ty_agent:"এজেন্ট",ty_merchant:"মার্চেন্ট",how_personal:"{m} অ্যাপ খুলুন → Send Money → এই নম্বর দিন → টাকার পরিমাণ দিন → পিন দিয়ে নিশ্চিত করুন।",how_agent:"{m} অ্যাপ খুলুন → Cash Out → এজেন্ট থেকে → এই এজেন্ট নম্বর দিন → টাকার পরিমাণ দিন → পিন দিয়ে নিশ্চিত করুন।",how_merchant:"{m} অ্যাপ খুলুন → Payment → এই মার্চেন্ট নম্বর দিন → টাকার পরিমাণ দিন → পিন দিয়ে নিশ্চিত করুন।",payNotReady:"দাম ও পেমেন্ট নম্বর এখনও বসানো হয়নি। বসানো হলে অনুরোধ পাঠাতে পারবেন।",n7:"৭ দিন",n15:"১৫ দিন",n30:"১ মাস",n365:"১ বছর",k7:"ট্রায়াল",k15:"ট্রায়াল",k30:"মাসিক",k365:"সবচেয়ে সাশ্রয়ী",soonTag:"শীঘ্রই আসছে",planSoon:"এই প্যাকেজ শীঘ্রই চালু হবে।",premium:"প্রিমিয়াম",premSub:"সব অ্যাড বন্ধ করুন",premFrom:"সব অ্যাড বন্ধ · {p} থেকে",premB1:"অ্যাপের কোথাও কোনো অ্যাড নেই",premB2:"অ্যাডে লক করা পর্ব সাথে সাথে খোলা",premB3:"পেইড ড্রামা আলাদা করে কিনতে হয়",soonPlans:"প্যাকেজ শীঘ্রই আসছে।",rmAds:"অ্যাড বন্ধ করুন",adFreeTill:"{d} পর্যন্ত অ্যাড বন্ধ",adFreeOn:"অ্যাড বন্ধ আছে",allTill:"{d} পর্যন্ত সব পেইড ড্রামা খোলা",plansS:"একবার টাকা দিন, বেছে নেওয়া সময় পর্যন্ত কোনো অ্যাড দেখবেন না।",
+  d7:"৭ দিন (ট্রায়াল)",d15:"১৫ দিন (ট্রায়াল)",d30:"১ মাস",d365:"১ বছর",payT:"পেমেন্ট",payStep1:"১. নিচের যেকোনো একটা নম্বরে {a} পাঠান:",payStep2:"২. টাকা পাঠানোর পর পাওয়া ট্রানজেকশন আইডি (TrxID) লিখুন:",trxPh:"TrxID",sendReq:"অনুরোধ পাঠান",
+  payNote:"আমরা পেমেন্ট মিলিয়ে চালু করে দেব, সাধারণত কয়েক ঘণ্টার মধ্যে। তারপর রিফ্রেশ চাপুন।",copyNum:"নম্বর কপি করুন",copied:"কপি হয়েছে",trxBad:"TrxID লিখুন (কমপক্ষে ৪ অক্ষর)।",sentOk:"অনুরোধ পাঠানো হয়েছে",sentSub:"পেমেন্ট মিলিয়ে আমরা চালু করে দেব। চালু হলে রিফ্রেশ চাপুন।",
+  sendFail:"পাঠানো যায়নি। আবার চেষ্টা করুন।",refresh:"আমার অ্যাকাউন্ট রিফ্রেশ করুন",refreshed:"অ্যাকাউন্ট আপডেট হয়েছে।",loginFirst:"আগে আপনার ইমেইল দিয়ে লগইন করুন, তাহলে কার জন্য আনলক হবে আমরা বুঝব।",
+  buyDramaT:"প্রিমিয়াম ড্রামা",buyDramaS:"পুরো ড্রামা দেখতে “{t}” কিনুন। ফ্রি পর্ব: {f}টি।",buyFor:"কিনছেন",noPay:"পেমেন্ট এখনও চালু হয়নি।",lockedS:"একটা ছোট অ্যাড দেখে {n}টা পর্ব আনলক করুন।",watchAd:"অ্যাড দেখে আনলক করুন",noEps:"এখনও কোনো পর্ব নেই",
+  adTitle:"বিজ্ঞাপন",adDemo:"নমুনা অ্যাড। আসল অ্যাড শুধু Android অ্যাপে দেখাবে।",adWait:"{s} সেকেন্ডে পুরস্কার",adDone:"পুরস্কার তৈরি",adSkip:"বন্ধ করুন (পুরস্কার ছাড়া)",adClaim:"পুরস্কার নিন",
+  adSkipped:"অ্যাড আগেই বন্ধ করা হয়েছে। পর্ব আনলক হয়নি।",adFail:"এখন কোনো অ্যাড পাওয়া যাচ্ছে না। পরে চেষ্টা করুন।",unlocked:"পর্ব আনলক হয়েছে",
+  maintT:"রক্ষণাবেক্ষণ চলছে",maintS:"Vidz আপডেট করা হচ্ছে। একটু পরে আবার আসুন।",updT:"আপডেট দরকার",updS:"দেখা চালিয়ে যেতে Vidz আপডেট করুন।",updBtn:"আপডেট করুন",
+  noUpdUrl:"আপডেটের লিংক এখনও দেওয়া হয়নি।",blockedT:"অ্যাকাউন্ট ব্লক করা",blockedS:"এই অ্যাকাউন্ট দিয়ে Vidz ব্যবহার করা যাবে না। সাহায্যের জন্য যোগাযোগ করুন।",newVer:"নতুন ভার্সন এসেছে: {v}",
+  loginG:"Google দিয়ে চালিয়ে যান",loginNoteG:"আপনার Google অ্যাকাউন্ট দিয়ে সাইন ইন করুন। সব ফোনে আপনার Vidz ID একই থাকবে।",loginFail:"লগইন হয়নি। আবার চেষ্টা করুন।",
+  fb:"মতামত",fbHint:"কী ঠিক করতে বা যোগ করতে হবে জানান।",fbSend:"পাঠান",fbThanks:"ধন্যবাদ! মতামত পাঠানো হয়েছে।",fbLogin:"মতামত পাঠাতে আগে লগইন করুন।",fbEmpty:"আগে কিছু লিখুন।",fbFail:"পাঠানো যায়নি। আবার চেষ্টা করুন।"
+});
+
+Object.assign(L.en,{fbType:"Type",fbT1:"Problem",fbT2:"Video issue",fbT3:"Idea",fbT4:"Other",fbMsg:"Your message",fbPick:"Add a screenshot (optional)",fbRemove:"Remove photo",fbImgBad:"Please choose a photo.",fbSending:"Sending…",fbLoginHint:"Log in first so we can reply and fix your problem.",fbWrite:"Describe the problem or idea…"});
+Object.assign(L.bn,{fbType:"ধরন",fbT1:"সমস্যা",fbT2:"ভিডিওর সমস্যা",fbT3:"পরামর্শ",fbT4:"অন্যান্য",fbMsg:"আপনার বার্তা",fbPick:"স্ক্রিনশট যোগ করুন (ঐচ্ছিক)",fbRemove:"ছবি সরান",fbImgBad:"একটা ছবি বেছে নিন।",fbSending:"পাঠানো হচ্ছে…",fbLoginHint:"আগে লগইন করুন, যাতে আমরা আপনার সমস্যা দেখে ঠিক করতে পারি।",fbWrite:"সমস্যা বা পরামর্শ লিখুন…"});
+
+/* ============ STATE ============ */
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem('vidz.'+k); return v?JSON.parse(v):d }catch(e){ return d } },
+  set(k,v){ try{ localStorage.setItem('vidz.'+k,JSON.stringify(v)) }catch(e){} }
+};
+const S = {
+  lang: store.get('lang','en'), theme: store.get('theme2','light'),
+  list: store.get('list',[]).map(String), hist: store.get('hist',[]).map(h=>({id:String(h.id),ep:h.ep})), user: store.get('user',''),
+  email: store.get('email',''), saveHist: store.get('saveHist',true),
+  notifOn: store.get('notifOn',true), nread: store.get('nread',[]).map(String), ndel: store.get('ndel',[]).map(String), unl: store.get('unl',{}),
+  guest: store.get('guest','') || ('GU-'+Math.floor(100000+Math.random()*900000)),
+  tab:'home', cat:'trending', q:'', listTab:'saved'
+};
+/* Same Gmail always gives the same ID, on any device, with no server. */
+function idFor(email){
+  let h=2166136261; const s=email.trim().toLowerCase();
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+  return 'VZ-'+String(10000000+(h%90000000));
+}
+S.uid = S.email ? idFor(S.email) : S.guest;
+store.set('guest',S.guest);
+const t = k => (L[S.lang]&&L[S.lang][k]) || L.en[k] || k;
+const $ = s => document.querySelector(s);
+const byId = id => D.find(d=>d.id===String(id));
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let BE=null, LOADING=!!FIREBASE_CONFIG, LOAD_ERR='', BLOCKED=false, ADFREE=false, ADUNTIL=0, ALLUNTIL=0, PAID=[], annHide=false, loginOpen=false, EPS={};
+const CFG0={latestVersion:'1.0.0',minVersion:'1.0.0',updateUrl:'',maintenance:false,maintenanceMessage:'',announcementOn:false,announcement:'',
+  adsEnabled:true,freeEpisodes:5,aboutText:'',privacyText:'',termsText:'',contactEmail:'',bannerHome:'',bannerPT:'',bannerPB:'',socialBar:'',payInfo:'',currency:'৳',price7:0,price15:0,price30:0,price365:0,premHomeCard:false,bkashNumber:'',bkashType:'personal',nagadNumber:'',nagadType:'personal'};
+let CFG={...CFG0};
+
+function fmt(v){ return v>=1e6 ? (v/1e6).toFixed(1).replace('.0','')+'M' : v>=1e3 ? Math.round(v/1e3)+'K' : String(v) }
+function applyTheme(){
+  const r=document.documentElement;
+  if(S.theme==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme',S.theme);
+}
+let toastTimer;
+function toast(msg){
+  const old=$('.toast'); if(old) old.remove();
+  const el=document.createElement('div'); el.className='toast'; el.textContent=msg; el.setAttribute('role','status');
+  document.body.appendChild(el); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.remove(),1800);
+}
+
+/* ============ ICONS ============ */
+const I = {
+ search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+ home:'<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>',
+ list:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
+ me:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1-4 4-5.5 7.5-5.5s6.500 1.500 7.500 5.500"/></svg>',
+ play:'<svg viewBox="0 0 10 12"><path d="M0 0l10 6-10 6z"/></svg>',
+ bookmark:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+ back:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+ chevron:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+ down:'<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
+ share:'<svg viewBox="0 0 24 24"><path d="M14 4l7 7-7 7V14c-6 0-9 2-11 6 1-6 4-10 11-11z"/></svg>',
+ layers:'<svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+ clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+ globe:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+ moon:'<svg viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4 8 8 0 1 0 20 14.500z"/></svg>',
+ mail:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/></svg>',
+ bell:'<svg viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21h4"/></svg>'
+};
+I.lock='<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+I.chat='<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+
+/* ============ SHARED PIECES ============ */
+function poster(d,extra=''){
+  return `<div class="poster ${extra}${d.img?' hasimg':''}" style="--a:${d.h[0]};--b:${d.h[1]}">${d.img?`<img class="pimg" src="${d.img}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('hasimg');this.remove()">`:''}<span class="pg">${d.g}</span>${d.n?'<span class="pn">NEW</span>':''}<span class="pt">${d.t}</span></div>`;
+}
+function saveBtn(d){
+  const on=S.list.includes(d.id);
+  return `<button class="save" data-act="save" data-id="${d.id}" aria-pressed="${on}" aria-label="${t('save')}">${I.bookmark}</button>`;
+}
+function card(d){
+  return `<div class="card"><div class="cwrap"><button class="card" data-act="open" data-id="${d.id}" style="width:100%" aria-label="${d.t}">${poster(d)}</button>${saveBtn(d)}</div>
+    <button class="card" data-act="open" data-id="${d.id}"><div class="ct">${d.t}</div><div class="cv">${I.play}${fmt(d.v)}</div></button></div>`;
+}
+function filtered(){
+  const q=S.q.trim().toLowerCase();
+  let a=[...D].sort((x,y)=>y.v-x.v);
+  if(q) return a.filter(d=>d.t.toLowerCase().includes(q)||d.g.toLowerCase().includes(q));
+  switch(S.cat){
+    case 'new': return a.filter(d=>d.n);
+    case 'originals': return a.filter(d=>d.o);
+    case 'romance': return a.filter(d=>d.g==='Romance');
+    case 'thriller': return a.filter(d=>d.g==='Thriller'||d.g==='Mystery');
+  }
+  if(S.cat.startsWith('c:')) return a.filter(d=>d.g===esc(S.cat.slice(2)));
+  return a;
+}
+
+/* ============ HOME ============ */
+let CATS=null; /* category names from Vidz Admin (null = built-in chips) */
+const catLabel=c=>c.startsWith('c:')?esc(c.slice(2)):t(c);
+function renderHome(){
+  const cats=['trending','new','originals',...(CATS?CATS.map(n=>'c:'+n):['romance','thriller'])];
+  $('#home').innerHTML = `
+   <div class="top"><div class="logo"><i>${I.play}</i>vidz</div>
+     <label class="search">${I.search}<input id="q" type="search" placeholder="${t('search')}" value="${S.q.replace(/"/g,'&quot;')}" autocomplete="off"></label>
+     <button class="bell" data-act="notif" aria-label="${t('notif')}">${I.bell}<i id="bdot" ${unread()?'':'hidden'}></i></button></div>
+   ${banner()}${premCard()}<div class="chips" role="tablist">${cats.map(c=>`<button class="chip" data-act="cat" data-c="${esc(c)}" aria-pressed="${S.cat===c&&!S.q}">${catLabel(c)}</button>`).join('')}</div>
+   <div id="homeBody"></div>`;
+  renderHomeBody();
+  $('#q').addEventListener('input',e=>{ S.q=e.target.value; renderHomeBody(); document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',String(S.cat===c.dataset.c&&!S.q))); });
+}
+function premCard(){
+  if(ADFREE||CFG.premHomeCard!==true) return '';
+  const ps=PLANS.map(p=>+CFG[p[1]]||0).filter(x=>x>0), low=ps.length?Math.min(...ps):0;
+  return `<button class="prem" data-act="plans"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg><span><b>${t('premium')}</b><small>${low?t('premFrom').replace('{p}',money(low)):t('premSub')}</small></span>${I.chevron}</button>`;
+}
+function renderHomeBody(){
+  const body=$('#homeBody');
+  if(LOADING){ body.innerHTML=`<div class="empty"><b>${t('loading')}</b></div>`; return }
+  if(LOAD_ERR){ body.innerHTML=`<div class="empty"><b>${t('loadErr')}</b><span style="display:block;margin:4px 0 12px;font-size:12px">${esc(LOAD_ERR)}</span><button class="btn" data-act="retry">${t('retry')}</button></div>`; return }
+  if(!D.length){ body.innerHTML=`<div class="empty"><b>${t('noDramas')}</b>${t('noDramasS')}</div>`; return }
+  const items=filtered();
+  if(S.q.trim()){
+    body.innerHTML = `<div class="sec"><h2>${t('results')}</h2><span>${items.length}</span></div>` +
+      (items.length?`<div class="grid">${items.map(card).join('')}</div>`:`<div class="empty"><b>${t('none')}</b></div>`);
+    return;
+  }
+  let h='';
+  if(S.cat==='trending'){
+    h += `<div class="hero">${heroList().map(d=>`
+      <button class="hcard" data-act="open" data-id="${d.id}" aria-label="${d.t}">${poster(d)}
+        <div class="hov"><p>${d.g} · ${d.eps} ${t('eps')}</p><h3>${d.t}</h3><span class="pill">${I.play}${t('play')}</span></div></button>`).join('')}</div>
+      <div class="sec"><h2>${t('top10')}</h2></div>
+      <div class="rail">${top10List().map((d,i)=>`<button class="t10" data-act="open" data-id="${d.id}" aria-label="${i+1}. ${d.t}"><b>${i+1}</b>${poster(d)}</button>`).join('')}</div>`;
+  }
+  h += `<div class="sec"><h2>${S.cat==='trending'?t('allDramas'):catLabel(S.cat)}</h2><span>${items.length}</span></div>
+        <div class="grid">${items.map(card).join('')}</div>`;
+  body.innerHTML=h;
+}
+
+/* ============ MY LIST ============ */
+function renderList(){
+  const saved=S.list.map(byId).filter(Boolean);
+  const hist=S.hist.map(h=>({d:byId(h.id),ep:h.ep})).filter(x=>x.d);
+  let body='';
+  if(S.listTab==='saved'){
+    body = saved.length ? `<div class="grid">${saved.map(card).join('')}</div>`
+      : `<div class="empty"><b>${t('emptySaved')}</b>${t('emptySavedS')}</div>`;
+  } else {
+    body = hist.length ? `<button class="btn ghost" data-act="clearHist" style="margin-bottom:8px;padding:6px 14px;font-size:13px">${t('clearHist')}</button>` + hist.map(x=>`<button class="hist-item" data-act="open" data-id="${x.d.id}">${poster(x.d)}<span><b>${x.d.t}</b><small>${t('ep')} ${x.ep} / ${x.d.eps}</small></span></button>`).join('')
+      : `<div class="empty"><b>${t('emptyRecent')}</b>${t('emptyRecentS')}</div>`;
+  }
+  const rec=[...D].sort((a,b)=>b.v-a.v).filter(d=>!S.list.includes(d.id)).slice(0,6);
+  $('#list').innerHTML = `<h1 class="page-h">${t('list')}</h1>
+    <div class="seg"><button data-act="ltab" data-v="saved" aria-pressed="${S.listTab==='saved'}">${t('saved')}</button><button data-act="ltab" data-v="recent" aria-pressed="${S.listTab==='recent'}">${t('recent')}</button></div>
+    <div style="margin-top:16px">${body}</div>
+    <div class="sec"><h2>${t('rec')}</h2></div><div class="grid">${rec.map(card).join('')}</div>`;
+}
+
+/* ============ ME ============ */
+function renderMe(){
+  const name=S.user||t('guest');
+  $('#me').innerHTML = `
+   <div class="profile"><div class="avatar">${(name[0]||'G').toUpperCase()}</div>
+     <div class="who"><b>${name.replace(/</g,'&lt;')}</b><small>Vidz ID: ${S.uid}</small>${S.email?`<small style="display:block;overflow:hidden;text-overflow:ellipsis">${S.email.replace(/</g,'&lt;')}</small>`:''}</div>
+     ${S.email?`<button class="btn ghost" data-act="logout">${t('logout')}</button>`:`<button class="btn" data-act="login">${t('login')}</button>`}</div>
+   <div class="menu">
+     <button class="row" data-act="history">${I.clock}<span>${t('history')}</span>${I.chevron}</button>
+     <button class="row" data-act="notif">${I.bell}<span>${t('notif')}</span>${unread()?`<em>${unread()}</em>`:''}${I.chevron}</button>
+     <button class="row" data-act="settings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>${t('setT')}</span>${I.chevron}</button>
+     <button class="row" data-act="plans"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg><span>${t('premium')}</span>${ADFREE?`<em>${ADUNTIL>Date.now()&&ADUNTIL<4e12?dateStr(ADUNTIL):'✓'}</em>`:''}${I.chevron}</button>
+   </div>
+   <div class="menu">
+     <div class="row">${I.globe}<span>${t('language')}</span>
+       <div class="seg"><button data-act="lang" data-v="en" aria-pressed="${S.lang==='en'}">English</button><button data-act="lang" data-v="bn" aria-pressed="${S.lang==='bn'}">বাংলা</button></div></div>
+     <div class="row">${I.moon}<span>${t('settings')}</span>
+       <div class="seg">${['auto','light','dark'].map(v=>`<button data-act="theme" data-v="${v}" aria-pressed="${S.theme===v}">${t(v)}</button>`).join('')}</div></div>
+     ${(()=>{const m=String(CFG.contactEmail||'').trim();return m&&/^[^\s@<>"']+@[^\s@<>"']+$/.test(m)?`<a class="row" href="mailto:${esc(m)}" style="color:inherit;text-decoration:none">${I.mail}<span>${t('contact')}</span><em>${esc(m)}</em></a>`:`<div class="row">${I.mail}<span>${t('contact')}</span><em>${t('contactTxt')}</em></div>`})()}
+   </div>
+   <p class="note" style="text-align:center;letter-spacing:.08em;text-transform:uppercase;margin-top:28px">Vidz Version ${VER}<br>Powered by Shihab</p>`;
+}
+
+/* ============ TABS ============ */
+function renderTabbar(){
+  const tabs=[['home','home'],['list','list'],['me','me']];
+  $('#tabbar').innerHTML = tabs.map(([k,ic])=>`<button data-act="tab" data-v="${k}" ${S.tab===k?'aria-current="page"':''}>${I[ic]}<span>${t(k)}</span></button>`).join('');
+}
+function setTab(k){
+  S.tab=k;
+  ['home','list','me'].forEach(x=>$('#'+x).hidden = x!==k);
+  if(k==='list') renderList(); if(k==='me') renderMe();
+  renderTabbar(); window.scrollTo(0,0);
+}
+/* Banner ads: the ad code comes from the admin panel and runs inside a small sandboxed frame. */
+const adsOn=()=>!ADFREE&&CFG.adsEnabled!==false;
+function adFrame(code){
+  code=String(code||'').trim(); if(!code) return '';
+  const probe='<script>(function(){var n=0,sent=0,t=setInterval(function(){var w=0,h=0;document.querySelectorAll("body *").forEach(function(e){if(e.tagName==="SCRIPT"||e.tagName==="STYLE")return;var r=e.getBoundingClientRect();if(r.width>=20&&r.height>=20&&r.width*r.height>w*h){w=r.width;h=r.height}});if(w&&h){parent.postMessage({vidzAd:1,w:Math.ceil(w),h:Math.ceil(h)},"*");sent++}if(++n>24||sent>3)clearInterval(t)},500)})();<\/script>';
+  const doc='<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}body{display:flex;justify-content:center}</style>'+code+probe;
+  return `<iframe class="adf" title="Advertisement" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" scrolling="no" srcdoc="${esc(doc)}"></iframe>`;
+}
+/* An ad box stays hidden until the ad inside it reports that something real has loaded. */
+window.addEventListener('message',e=>{
+  const d=e.data; if(!d||d.vidzAd!==1) return;
+  document.querySelectorAll('iframe.adf').forEach(f=>{
+    if(f.contentWindow!==e.source) return;
+    f.style.width=Math.min(d.w,360)+'px'; f.style.height=Math.min(Math.max(d.h,20),130)+'px';
+    f.parentNode.classList.add('ok');
+    if(f.parentNode.id==='adHome') document.body.classList.add('hasad');
+  });
+});
+function syncHomeBanner(){
+  let el=$('#adHome'); const code=String(CFG.bannerHome||'').trim();
+  if(!adsOn()||!code){ if(el) el.remove(); document.body.classList.remove('hasad'); return }
+  if(!el){ el=document.createElement('div'); el.id='adHome'; el.className='adbox'; document.body.appendChild(el) }
+  if(el.dataset.code!==code){ el.dataset.code=code; el.classList.remove('ok'); el.innerHTML=adFrame(code) }
+  const tb=document.querySelector('.tabbar'); document.documentElement.style.setProperty('--tbh',(tb?tb.offsetHeight:64)+'px');
+  document.body.classList.toggle('hasad',el.classList.contains('ok'));
+}
+function playerAds(){
+  [['#padT',CFG.bannerPT],['#padB',CFG.bannerPB]].forEach(([sel,code])=>{
+    const el=$(sel); if(!el) return;
+    if(!adsOn()||!String(code||'').trim()){ el.classList.remove('on'); return }
+    if(!el.firstChild) el.innerHTML=adFrame(code);
+    el.classList.add('on');
+  });
+}
+/* Social Bar: loaded once into the page, but only visible on the home page (hidden on other pages and in the player). */
+let socialLoaded='';
+function runCode(code){
+  const tpl=document.createElement('template'); tpl.innerHTML=code;
+  tpl.content.querySelectorAll('script').forEach(o=>{
+    const s=document.createElement('script'); [...o.attributes].forEach(a=>s.setAttribute(a.name,a.value)); s.text=o.text; document.body.appendChild(s);
+  });
+}
+new MutationObserver(ms=>{ if(!socialLoaded) return;
+  ms.forEach(m=>m.addedNodes.forEach(n=>{
+    if(n.nodeType!==1||n.parentNode!==document.body) return;
+    if(/^(SCRIPT|STYLE|LINK)$/.test(n.tagName)||n.id==='adHome'||n.classList.contains('toast')||n.classList.contains('adov')) return;
+    n.classList.add('vzx');
+  }));
+}).observe(document.body,{childList:true});
+function socialSync(){
+  const code=String(CFG.socialBar||'').trim();
+  if(adsOn()&&code&&socialLoaded!==code&&!socialLoaded){ socialLoaded=code; try{ runCode(code) }catch(e){} }
+  const home=S.tab==='home'&&$('#player').hidden&&$('#detail').hidden&&$('#gpov').hidden;
+  document.body.classList.toggle('vz-nosocial',!home||!adsOn());
+}
+setInterval(()=>{ try{ socialSync() }catch(e){} },400);
+function renderAll(){ renderHome(); renderList(); renderMe(); renderTabbar();
+  $('#home').hidden=S.tab!=='home'; $('#list').hidden=S.tab!=='list'; $('#me').hidden=S.tab!=='me';
+  document.documentElement.lang = S.lang==='bn'?'bn':'en';
+  if(!$('#detail').hidden && curDrama) renderDetail(curDrama);
+  syncHomeBanner();
+}
+
+/* ============ DETAIL ============ */
+let curDrama=null;
+function lastEp(id){ const h=S.hist.find(x=>x.id===id); return h?h.ep:0 }
+function openDetail(id){
+  curDrama=id; renderDetail(id); $('#detail').hidden=false; $('#detail').scrollTop=0;
+  ensureEps(id).then(()=>{ if(curDrama===id && !$('#detail').hidden) renderDetail(id) });
+}
+function renderDetail(id){
+  const d=byId(id);
+  if(!d){ $('#detail').hidden=true; curDrama=null; return }
+  const le=lastEp(id), on=S.list.includes(id);
+  $('#detail').innerHTML = `
+   <button class="back" data-act="closeDetail" aria-label="${t('close')}">${I.back}</button>
+   <div class="d-hero">${poster(d)}<div style="min-width:0"><h1>${d.t}</h1>
+     <div class="meta"><span>${d.g}</span><span>${epCount(d)} ${t('eps')}</span><span>${fmt(d.v)} ${t('views')}</span></div></div></div>
+   <p class="syn">${d.s}</p>
+   <div class="acts"><button class="btn" data-act="play" data-id="${id}" data-ep="${le||1}">${I.play}${le?t('cont')+' '+t('ep')+' '+le:t('play')+' '+t('ep')+' 1'}</button>
+     <button class="btn ghost" data-act="save" data-id="${id}" aria-pressed="${on}">${on?t('saved2'):t('save')}</button></div>
+   <div class="sec"><h2>${t('episodes')}</h2><span>${epCount(d)}</span></div>
+   <div id="dEps"></div>`;
+  epGrid($('#dEps'),d,le||0,'play');
+}
+function epGrid(el,d,cur,act){
+  let range=Math.floor(((cur||1)-1)/25);
+  const draw=()=>{
+    const total=epCount(d), ranges=Math.ceil(total/25);
+    const tabs = ranges>1 ? `<div class="ranges">${Array.from({length:ranges},(_,i)=>`<button data-r="${i}" ${i===range?'aria-current="true"':''}>${i*25+1}-${Math.min(total,(i+1)*25)}</button>`).join('')}</div>`:'';
+    const from=range*25+1, to=Math.min(total,from+24); let b='';
+    for(let n=from;n<=to;n++){
+      const lk=isLocked(d,n);
+      b+=`<button data-ep="${n}" ${lk?`class="lk" aria-label="${n} ${t('lockedT')}"`:''} ${n===cur?'aria-current="true"':''}>${n}${lk?I.lock:''}</button>`;
+    }
+    el.innerHTML = tabs+`<div class="eps">${b}</div>`;
+  };
+  draw();
+  el.onclick=e=>{
+    const r=e.target.closest('[data-r]'); if(r){ range=+r.dataset.r; draw(); return }
+    const b=e.target.closest('[data-ep]'); if(!b) return;
+    const ep=+b.dataset.ep;
+    if(act==='play') openPlayer(d.id,ep); else { closeSheet(); gotoEp(ep); }
+  };
+}
+
+/* ============ PLAYER ============ */
+const P={id:0,ep:1,pos:0,dur:75,playing:true,speed:1,timer:null};
+const SPEEDS=[1,1.25,1.5,2];
+async function openPlayer(id,ep){
+  const d=byId(id); if(!d) return;
+  const list=await ensureEps(id); if(!list) return;
+  if(!list.some(e=>e.number===ep)){ toast(t('noEps')); return }
+  if(isLocked(d,ep)){ unlockPage(id,ep,'detail'); return }
+  openPlayerNow(id,ep);
+}
+function openPlayerNow(id,ep){
+  P.id=id;P.ep=ep;P.pos=0;P.playing=true;P.speed=1;
+  const d=byId(id);
+  if(S.saveHist){ S.hist=[{id,ep},...S.hist.filter(h=>h.id!==id)].slice(0,20); store.set('hist',S.hist); }
+  $('#player').innerHTML = `
+   <div class="stage" id="stage" style="--a:${d.h[0]};--b:${d.h[1]}"></div>
+   <div class="playflash" id="flash">${I.play}</div>
+   <div class="p-ad p-adt" id="padT"></div><div class="p-ad p-adb" id="padB"></div>
+   <div class="p-top"><button class="back" data-act="closePlayer" aria-label="${t('close')}">${I.back}</button><b id="pTitle"></b></div>
+   <div class="p-side">
+     <button data-act="save" data-id="${id}" id="pSave" aria-pressed="${S.list.includes(id)}">${I.bookmark}<span>${t('save')}</span></button>
+     <button data-act="share">${I.share}<span>${t('share')}</span></button>
+   </div>
+   <div class="p-bot">
+     <div class="pbrow" style="--a:${d.h[0]};--b:${d.h[1]}"><span class="pth">${d.img?`<img src="${d.img}" alt="" onerror="this.remove()">`:''}</span><div class="pbt"><h2>${d.t}</h2></div></div><p id="pStory" class="pstory"></p>
+     <button class="epbtn" data-act="epsheet">${I.layers}<span id="pEp"></span>${I.down}</button>
+     <div class="bar" id="bar" role="slider" aria-label="Progress"><i><u id="barFill"></u></i></div>
+     <div class="p-ctl"><button data-act="speed" id="pSpeed"><svg viewBox="0 0 24 24"><path d="M4.5 18a9 9 0 1 1 15 0"/><path d="M12 14l4-5"/></svg><span id="pSpeedT">1x</span></button><span class="hdq"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M7 9v6M11 9v6M7 12h4M14 9v6h2a3 3 0 0 0 0-6z"/></svg>480P</span></div>
+   </div>`;
+  $('#player').hidden=false; document.body.style.overflow='hidden';
+  loadEp(); bindPlayer();
+}
+function loadEp(){
+  const d=byId(P.id); P.pos=0;
+  const url=(epInfo(d,P.ep)||{}).videoUrl, stage=$('#stage');
+  stage.innerHTML='';
+  if(url){
+    const v=document.createElement('video'); v.src=url; v.playsInline=true; v.autoplay=true; v.setAttribute('playsinline','');
+    v.addEventListener('timeupdate',()=>{P.pos=v.currentTime;P.dur=v.duration||P.dur;paint()});
+    v.addEventListener('ended',nextEp); v.playbackRate=P.speed; stage.appendChild(v); P.video=v;
+  } else {
+    P.video=null; P.dur=75;
+    stage.innerHTML=`<div class="ghost-ep">${t('ep')} ${String(P.ep).padStart(2,'0')}</div><div class="ph">${t('placeholder')}</div>`;
+  }
+  $('#pTitle').textContent=`${t('ep')}${P.ep}`;
+  { const st=(epInfo(d,P.ep)||{}).story||''; const el=$('#pStory'); el.textContent=`${t('ep')}${P.ep}`+(st?' | '+st:''); }
+  $('#pEp').textContent=`${t('ep')}${P.ep} / ${t('ep')}${epCount(d)}`;
+  if(S.saveHist){ S.hist=[{id:P.id,ep:P.ep},...S.hist.filter(h=>h.id!==P.id)]; store.set('hist',S.hist); }
+  setPlaying(true); paint();
+}
+function paint(){
+  const f=Math.min(1,P.pos/(P.dur||1));
+  const u=$('#barFill'); if(u) u.style.width=(f*100)+'%';
+  const m=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+  const tm=$('#pTime'); if(tm) tm.textContent=m(P.pos)+' / '+m(P.dur);
+}
+/* The texts and buttons fade out 15 seconds into playback and come back on tap or pause. */
+const UI_HIDE_MS=15000;
+function showUI(){
+  const pl=$('#player'); if(!pl) return;
+  pl.classList.remove('ui-off'); clearTimeout(P.uiT);
+  if(P.playing) P.uiT=setTimeout(()=>{ if(P.playing){ pl.classList.add('ui-off'); playerAds() } },UI_HIDE_MS);
+}
+function setPlaying(on){
+  P.playing=on; showUI(); const st=$('#stage'); if(st) st.classList.toggle('paused',!on);
+  if(P.video){ on?P.video.play().catch(()=>{}):P.video.pause(); }
+  clearInterval(P.timer);
+  if(on && !P.video){ P.timer=setInterval(()=>{ P.pos+=0.2*P.speed; if(P.pos>=P.dur) nextEp(); paint(); },200); }
+}
+function flash(){ const f=$('#flash'); f.classList.add('on'); setTimeout(()=>f.classList.remove('on'),450) }
+function gotoEp(n){
+  const d=byId(P.id); if(!d||n<1||n>epCount(d)||!epInfo(d,n)) return;
+  if(isLocked(d,n)){ setPlaying(false); unlockPage(d.id,n,'player'); return }
+  P.ep=n; loadEp();
+}
+function nextEp(){ const d=byId(P.id); if(P.ep<epCount(d)) gotoEp(P.ep+1); else setPlaying(false) }
+function bindPlayer(){
+  const stage=$('#stage'); let y0=null,x0=null;
+  $('#player').onpointerdown=()=>showUI();
+  stage.onclick=()=>{ setPlaying(!P.playing); flash() };
+  stage.ontouchstart=e=>{ y0=e.touches[0].clientY; x0=e.touches[0].clientX };
+  stage.ontouchend=e=>{ if(y0===null) return; const dy=e.changedTouches[0].clientY-y0, dx=Math.abs(e.changedTouches[0].clientX-x0); y0=null;
+    if(Math.abs(dy)>70 && dx<60){ e.preventDefault(); dy<0?nextEp():gotoEp(P.ep-1) } };
+  const bar=$('#bar');
+  const seek=e=>{ const r=bar.getBoundingClientRect(); const x=(e.touches?e.touches[0].clientX:e.clientX); const f=Math.max(0,Math.min(1,(x-r.left)/r.width));
+    P.pos=f*P.dur; if(P.video) P.video.currentTime=P.pos; paint() };
+  bar.onpointerdown=e=>{ seek(e); bar.setPointerCapture(e.pointerId); bar.onpointermove=seek };
+  bar.onpointerup=()=>{ bar.onpointermove=null };
+}
+function closePlayer(){
+  clearInterval(P.timer); clearTimeout(P.uiT); $('#player').classList.remove('ui-off'); if(P.video) P.video.pause();
+  $('#player').hidden=true; $('#player').innerHTML=''; document.body.style.overflow='';
+  if(!$('#detail').hidden) renderDetail(curDrama);
+  if(S.tab==='list') renderList();
+}
+
+/* ============ SHEETS ============ */
+function closeSheet(){ $('#layer').innerHTML='' }
+function openSheet(html,light){
+  $('#layer').innerHTML=`<div class="scrim" data-act="scrim"><div class="sheet ${light?'light':''}" role="dialog">${html}</div></div>`;
+}
+
+/* ============ SETTINGS ============ */
+const VER='1.0.0';
+function openPage(title,body,backAct){
+  const p=$('#spage');
+  p.innerHTML=`<div style="display:flex;align-items:center;gap:12px;padding-top:12px">
+    <button class="back" style="margin:0;flex:none" data-act="${backAct}" aria-label="${t('back')}">${I.back}</button>
+    <h1 style="font-size:24px;letter-spacing:-.02em;min-width:0">${title}</h1></div>
+    <div style="margin-top:20px">${body}</div>`;
+  p.hidden=false; p.scrollTop=0;
+}
+/* Sample notifications. Replace with real ones from your server later. */
+let NOTIFS=[
+ {id:1,d:1,ago:['2h ago','২ ঘণ্টা আগে'],en:['New episodes out','Midnight Tenant: episodes 41 and 42 are now available.'],bn:['নতুন পর্ব এসেছে','Midnight Tenant: ৪১ ও ৪২ নম্বর পর্ব এখন দেখা যাচ্ছে।']},
+ {id:2,d:9,ago:['5h ago','৫ ঘণ্টা আগে'],en:['Trending now','Tea Stall Billionaire is the most watched drama today.'],bn:['এখন ট্রেন্ডিং','Tea Stall Billionaire আজ সবচেয়ে বেশি দেখা ড্রামা।']},
+ {id:3,d:11,ago:['1d ago','১ দিন আগে'],en:['New drama','Glass Harbor just arrived. Start with episode 1.'],bn:['নতুন ড্রামা','Glass Harbor এইমাত্র এসেছে। ১ নম্বর পর্ব থেকে শুরু করুন।']},
+ {id:4,d:4,ago:['2d ago','২ দিন আগে'],en:['Continue watching','Second Chance Sunday is waiting for you.'],bn:['দেখা চালিয়ে যান','Second Chance Sunday আপনার অপেক্ষায়।']}
+];
+NOTIFS.forEach(n=>{ n.id=String(n.id); n.d=String(n.d); });
+function unread(){ return S.notifOn ? NOTIFS.filter(n=>!S.nread.includes(n.id)&&!S.ndel.includes(n.id)).length : 0 }
+function updateBell(){ const d=$('#bdot'); if(d) d.hidden = unread()===0; }
+function switchBtn(act,on,label){
+  return `<button class="seg" data-act="${act}" role="switch" aria-checked="${on}" aria-label="${label}" style="width:52px;height:30px;padding:3px;justify-content:${on?'flex-end':'flex-start'};background:${on?'var(--accent)':'var(--surface)'}"><i style="display:block;width:22px;height:22px;border-radius:50%;background:${on?'var(--accent-fg)':'var(--muted)'}"></i></button>`;
+}
+function notifPage(){
+  const k=S.lang==='bn'?'bn':'en', ai=S.lang==='bn'?1:0; let body;
+  const vis=NOTIFS.filter(n=>!S.ndel.includes(n.id));
+  if(!S.notifOn){
+    body=`<div class="empty"><b>${t('notifOff')}</b>${t('notifSub')}<br><button class="btn" style="margin-top:14px" data-act="notifOn">${t('turnOn')}</button></div>`;
+  } else if(!vis.length){
+    body=`<div class="empty"><b>${t('notifNone')}</b></div>`;
+  } else {
+    body=`<button class="btn ghost" style="padding:6px 14px;font-size:13px" data-act="readAll">${t('markRead')}</button><div style="height:6px"></div>`+
+      vis.map(n=>`<button class="nrow" data-act="notifOpen" data-id="${n.id}" data-read="${S.nread.includes(n.id)?1:0}"><span class="ndot" ${S.nread.includes(n.id)?'style="visibility:hidden"':''}></span><span class="ntx"><b>${n[k][0]}</b><span>${n[k][1]}</span><small>${n.ago[ai]}</small></span></button>`).join('');
+  }
+  openPage(t('notif'),body,'closeSettings');
+}
+function notifSetPage(){
+  openPage(t('notif'),`<div class="row" style="padding-left:0;padding-right:0"><span><b>${t('notifLbl')}</b><br><em>${t('notifSub')}</em></span>${switchBtn('togNotif',S.notifOn,t('notifLbl'))}</div>
+    <p class="note">${t('notifPush')}</p>`,'settings');
+}
+function histPage(){
+  const hist=S.hist.map(h=>({d:byId(h.id),ep:h.ep})).filter(x=>x.d);
+  openPage(t('history'),
+    hist.length
+      ? `<button class="btn ghost" style="padding:6px 14px;font-size:13px;margin-bottom:12px" data-act="clearHist">${t('clearHist')}</button>`
+        + hist.map(x=>`<button class="hist-item" data-act="openFromSheet" data-id="${x.d.id}">${poster(x.d)}<span><b>${x.d.t}</b><small>${t('ep')} ${x.ep} / ${x.d.eps}</small></span></button>`).join('')
+      : `<div class="empty"><b>${t('emptyRecent')}</b>${t('emptyRecentS')}</div>`,
+    'closeSettings');
+}
+function settingsSheet(){
+  const rows=[['notifset','notif'],['chk','chkUpd'],['about','about'],['privacy','privacy'],['terms','terms'],['privset','privSet']];
+  openPage(t('setT'),`<div class="menu" style="margin-top:0">${rows.map(r=>`<button class="row" data-act="s_${r[0]}"><span>${t(r[1])}</span>${I.chevron}</button>`).join('')}</div>`,'closeSettings');
+}
+function subSheet(title,body){
+  openPage(title,body,'settings');
+}
+function privSheet(){
+  subSheet(t('privSet'),`
+    <div class="row" style="padding-left:0;padding-right:0"><span><b>${t('saveHistLbl')}</b><br><em>${t('saveHistSub')}</em></span>
+      <button class="seg" data-act="togHist" role="switch" aria-checked="${S.saveHist}" aria-label="${t('saveHistLbl')}" style="width:52px;height:30px;padding:3px;justify-content:${S.saveHist?'flex-end':'flex-start'};background:${S.saveHist?'var(--accent)':'var(--surface)'}">
+        <i style="display:block;width:22px;height:22px;border-radius:50%;background:${S.saveHist?'var(--accent-fg)':'var(--muted)'}"></i></button></div>
+    <button class="btn ghost" style="width:100%;margin-top:10px;color:#e5484d" data-act="wipe">${t('wipe')}</button>`);
+}
+
+/* ============ ONLINE DATA, LOCKS AND ADS ============ */
+const hueOf=s=>{ let h=0; for(const c of String(s||'')) h=(h*31+c.charCodeAt(0))%360; return h };
+const safeUrl=u=>/^https?:\/\/[^\s"'<>()]+$/i.test(String(u||'')) ? String(u) : '';
+function txtHtml(s){ return esc(s).replace(/\n/g,'<br>') }
+function rel(ms){
+  const m=Math.max(0,Math.round((Date.now()-ms)/6e4));
+  const bn=n=>String(n).replace(/\d/g,c=>'০১২৩৪৫৬৭৮৯'[c]);
+  if(m<1) return ['Just now','এইমাত্র'];
+  if(m<60) return [m+'m ago',bn(m)+' মিনিট আগে'];
+  const h=Math.round(m/60); if(h<24) return [h+'h ago',bn(h)+' ঘণ্টা আগে'];
+  const d=Math.round(h/24); return [d+'d ago',bn(d)+' দিন আগে'];
+}
+function fromDoc(id,x){
+  const a=hueOf(x.title);
+  return {id:String(id), t:esc(x.title||''), g:esc(x.genre||'Drama'), eps:+x.episodesCount||0, v:+x.views||0, h:[a,(a+40)%360],
+    n:x.isNew?1:0, o:x.isOriginal?1:0, s:esc(x.synopsis||''), img:safeUrl(x.posterUrl),
+    feat:x.featured?(+x.featuredOrder||999):0, top:+x.top10Rank||0,
+    price:Math.max(0,+x.price||0),
+    free:(x.freeEpisodes===null||x.freeEpisodes===undefined)?undefined:+x.freeEpisodes};
+}
+function mapNotifs(ns){
+  const now=Date.now();
+  return ns.filter(n=>n.status!=='scheduled'||(n.scheduledAt&&n.scheduledAt<=now)).map(n=>({
+    id:String(n.id), d:n.dramaId?String(n.dramaId):'', ago:rel(n.sentAt||n.scheduledAt||n.createdAt||now),
+    en:[esc(n.title),esc(n.body)], bn:[esc(n.title),esc(n.body)]
+  }));
+}
+function cmpVer(a,b){
+  const x=String(a||'0').split('.').map(n=>parseInt(n,10)||0), y=String(b||'0').split('.').map(n=>parseInt(n,10)||0);
+  for(let i=0;i<3;i++){ const k=(x[i]||0)-(y[i]||0); if(k) return k>0?1:-1 }
+  return 0;
+}
+function heroList(){ const f=D.filter(d=>d.feat).sort((a,b)=>a.feat-b.feat); return (f.length?f:[...D].sort((a,b)=>b.v-a.v)).slice(0,5) }
+function top10List(){ const f=D.filter(d=>d.top).sort((a,b)=>a.top-b.top); return (f.length?f:[...D].sort((a,b)=>b.v-a.v)).slice(0,10) }
+function banner(){
+  return (CFG.announcementOn&&CFG.announcement&&!annHide)
+    ? `<div class="ban"><span>${esc(CFG.announcement)}</span><button data-act="annClose" aria-label="${t('close')}">×</button></div>` : '';
+}
+
+/* Episodes: loaded per drama the first time you open it. */
+function epCount(d){ const c=EPS[d.id]; return Math.max(d.eps||0, c?c.length:0) }
+function epInfo(d,n){
+  const c=EPS[d.id];
+  if(!c) return {videoUrl:'', locked: BE ? false : n>(d.free ?? CFG.freeEpisodes)};
+  return c.find(e=>e.number===n)||null;
+}
+const isPaidD=d=>(+d.price||0)>0;
+function isLocked(d,n){
+  if(isPaidD(d)) return n>(d.free ?? CFG.freeEpisodes) && !PAID.includes(d.id) && !(ALLUNTIL>Date.now());
+  return false;
+}
+async function ensureEps(id){
+  if(EPS[id]) return EPS[id];
+  const d=byId(id); if(!d) return null;
+  let list=null;
+  if(BE){
+    try{
+      list=(await BE.episodes(id)).map(e=>({number:+e.number||0,videoUrl:safeUrl(e.videoUrl),locked:!!e.locked,story:String(e.synopsis||'').slice(0,400)}))
+        .filter(e=>e.number>0).sort((a,b)=>a.number-b.number);
+    }catch(err){ toast(t('loadErr')); return null }
+  } else {
+    list=Array.from({length:d.eps},(_,i)=>({number:i+1,videoUrl:'',locked:i+1>(d.free ?? CFG.freeEpisodes)}));
+  }
+  EPS[id]=list; return list;
+}
+
+/* Firebase connection. Used only when FIREBASE_CONFIG is filled in. */
+async function makeBackend(){
+  if(!FIREBASE_CONFIG) return null;
+  const B='https://www.gstatic.com/firebasejs/10.12.2/';
+  const imp=u=>Promise.race([import(u),new Promise((_,r)=>setTimeout(()=>r(new Error('Could not download '+u.split('/').pop()+' (slow or blocked network). Check your internet and tap Retry.')),25000))]);
+  const [A,AU,FS]=await Promise.all([imp(B+'firebase-app.js'),imp(B+'firebase-auth.js'),imp(B+'firebase-firestore.js')]);
+  const app=A.initializeApp(FIREBASE_CONFIG), auth=AU.getAuth(app), fs=FS.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
+  const ms=v=>v&&typeof v.toMillis==='function'?v.toMillis():v;
+  const norm=(id,d)=>{ const o={id}; for(const k in d) o[k]=ms(d[k]); return o };
+  const col=async(p,...c)=>(await FS.getDocs(FS.query(FS.collection(fs,p),...c))).docs.map(s=>norm(s.id,s.data()));
+  return {
+    dramas:()=>col('dramas'),
+    episodes:id=>col('dramas/'+id+'/episodes',FS.orderBy('number')),
+    async config(){ const s=await FS.getDoc(FS.doc(fs,'config/app')); return s.exists()?s.data():null },
+    categories:()=>col('categories',FS.orderBy('order')),
+    notifs:()=>col('notifications',FS.orderBy('createdAt','desc'),FS.limit(30)),
+    onUser:cb=>AU.onAuthStateChanged(auth,cb),
+    async signAnon(){ if(!auth.currentUser) await AU.signInAnonymously(auth); return auth.currentUser },
+    signOut:()=>AU.signOut(auth),
+    async getUser(uid){ const s=await FS.getDoc(FS.doc(fs,'users/'+uid)); return s.exists()?s.data():null },
+    async saveUser(uid,d,isNew){
+      const data={email:d.email,name:d.name,vidzId:d.vidzId,lastLoginAt:FS.serverTimestamp()};
+      if(isNew){ data.createdAt=FS.serverTimestamp(); data.blocked=false }
+      await FS.setDoc(FS.doc(fs,'users/'+uid),data,{merge:true});
+    },
+    async touch(uid){ await FS.setDoc(FS.doc(fs,'users/'+uid),{lastSeenAt:FS.serverTimestamp()},{merge:true}) },
+    async saveOrder(o){ const r=await FS.addDoc(FS.collection(fs,'orders'),{...o,status:'pending',createdAt:FS.serverTimestamp()}); return r.id },
+    async orderStatus(id){ const s=await FS.getDoc(FS.doc(fs,'orders/'+id)); return s.exists()?(s.data().status||'pending'):'pending' },
+    async feedback(f){ await FS.addDoc(FS.collection(fs,'feedback'),{...f,status:'open',createdAt:FS.serverTimestamp()}) }
+  };
+}
+async function loadRemote(){
+  LOADING=true; LOAD_ERR=''; renderHome();
+  try{
+    const [cfg,ds,ns,cs]=await Promise.race([Promise.all([BE.config().catch(()=>null),BE.dramas(),BE.notifs().catch(()=>[]),(BE.categories?BE.categories():Promise.resolve([])).catch(()=>[])]),new Promise((_,r)=>setTimeout(()=>r(new Error('Server did not answer in time. Check your internet and tap Retry.')),30000))]);
+    CATS=cs.map(c=>String(c.name||'').trim()).filter(Boolean); if(!CATS.length) CATS=null; if(CATS&&S.cat.startsWith('c:')&&!CATS.includes(S.cat.slice(2))) S.cat='trending';
+    CFG={...CFG0,...(cfg||{})};
+    D=ds.filter(x=>x.status!=='hidden').map(x=>fromDoc(x.id,x));
+    NOTIFS=mapNotifs(ns); EPS={};
+    LOADING=false; applyGates(); renderAll();
+  }catch(e){ LOADING=false; LOAD_ERR=String((e&&e.message)||e); renderHome(); }
+}
+/* Email-only login: the app signs in quietly (anonymous Firebase session) and keeps one record per email in the users collection. */
+let LOGGING=false;
+/* Account state that only the admin can change: ad-free (permanent or until a date) and bought dramas. */
+function applyAccount(rec){
+  rec=rec||{};
+  ADUNTIL=+rec.adFreeUntil||0;
+  ALLUNTIL=+rec.allDramasUntil||0;
+  ADFREE=!!rec.adFree||ADUNTIL>Date.now();
+  PAID=Array.isArray(rec.paid)?rec.paid.map(String):[];
+}
+let lastRefresh=0;
+async function refreshAccount(manual){
+  if(!BE||!S.email) return;
+  if(!manual&&Date.now()-lastRefresh<20000) return;
+  lastRefresh=Date.now();
+  try{
+    const rec=await BE.getUser(S.email); if(!rec) return;
+    if(rec.blocked){ BLOCKED=true; applyGates(); return }
+    applyAccount(rec); renderMe(); renderAll();
+    if(manual) toast(t('refreshed'));
+  }catch(e){ if(manual) toast(t('loadErr')) }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') refreshAccount(false) });
+const goodEmail=v=>/^[^\s@\/]+@[^\s@\/]+\.[^\s@\/]+$/.test(v)&&v.length<=120;
+async function finishLogin(email,fresh){
+  let rec=null;
+  try{ rec=await BE.getUser(email) }catch(e){}
+  if(rec&&rec.blocked){ BLOCKED=true; try{ await BE.signOut() }catch(e){} S.email=''; S.user=''; S.uid=S.guest; store.set('email',''); store.set('user',''); applyGates(); return false }
+  applyAccount(rec);
+  S.fbUid=email; S.email=email;
+  S.user=(fresh?'':store.get('user',''))||email.split('@')[0].replace(/[._]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,24);
+  S.uid=idFor(email); store.set('email',S.email); store.set('user',S.user);
+  try{ await BE.saveUser(email,{email,name:S.user,vidzId:S.uid},!rec) }catch(e){}
+  renderMe(); renderAll(); heartbeat(email);
+  return true;
+}
+async function onUser(u){
+  if(!u){
+    S.fbUid=''; clearInterval(hbT); applyAccount(null);
+    if(S.email){ S.email=''; S.user=''; S.uid=S.guest; store.set('email',''); store.set('user',''); }
+    renderMe(); return;
+  }
+  if(LOGGING) return;
+  const saved=String(store.get('email','')||'').toLowerCase();
+  if(!saved||!goodEmail(saved)) return;
+  await finishLogin(saved,false);
+}
+/* Tells the admin panel this logged-in user is online (updates every 2 minutes while the app is open). */
+let hbT=null;
+function heartbeat(uid){
+  clearInterval(hbT);
+  const ping=()=>{ if(document.visibilityState==='visible'&&BE&&S.fbUid===uid) BE.touch(uid).catch(()=>{}) };
+  ping(); hbT=setInterval(ping,120000);
+  document.addEventListener('visibilitychange',ping);
+}
+async function start(){
+  LOAD_ERR='';
+  if(FIREBASE_CONFIG&&!BE){
+    LOADING=true; renderHome();
+    try{ BE=await makeBackend(); BE.onUser(onUser) }
+    catch(e){ BE=null; LOADING=false; LOAD_ERR=String((e&&e.message)||e); renderHome(); return }
+  }
+  if(BE) await loadRemote();
+}
+function showGate(kind){
+  if(!$('#player').hidden) closePlayer();
+  const m={maint:[t('maintT'),esc(CFG.maintenanceMessage||t('maintS')),'retry',t('retry')],
+    upd:[t('updT'),t('updS'),'openUpdate',t('updBtn')], blocked:[t('blockedT'),t('blockedS'),'','']}[kind];
+  const g=$('#gate');
+  g.innerHTML=`<div class="gbox"><h1>${m[0]}</h1><p style="color:var(--muted)">${m[1]}</p>${m[2]?`<button class="btn" data-act="${m[2]}">${m[3]}</button>`:''}</div>`;
+  g.hidden=false;
+}
+function applyGates(){
+  if(BLOCKED) return showGate('blocked');
+  if(CFG.maintenance) return showGate('maint');
+  if(cmpVer(CFG.minVersion,VER)>0) return showGate('upd');
+  $('#gate').hidden=true;
+}
+async function checkUpdate(){
+  await new Promise(r=>setTimeout(r,500));
+  if(BE){ try{ CFG={...CFG0,...((await BE.config())||{})} }catch(e){} }
+  const m=$('#updMsg'); if(!m) return;
+  if(cmpVer(CFG.latestVersion,VER)>0) m.innerHTML=t('newVer').replace('{v}',esc(CFG.latestVersion))+`<br><br><button class="btn" data-act="openUpdate">${t('updBtn')}</button>`;
+  else m.textContent=t('upToDate');
+}
+
+/* Feedback */
+const FB={img:'',type:'t1'};
+function fbPaint(){
+  const box=$('#fbx'); if(!box) return;
+  box.innerHTML=FB.img
+    ? `<img src="${FB.img}" alt="" style="max-width:100%;max-height:220px;border-radius:12px;display:block;margin-bottom:8px"><button class="btn ghost" data-act="fbRm">${t('fbRemove')}</button>`
+    : `<button class="btn ghost" data-act="fbPick">${I.chat}${t('fbPick')}</button>`;
+  document.querySelectorAll('#spage [data-act=fbType]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===FB.type));
+}
+function feedbackPage(){
+  FB.img=''; FB.type='t1';
+  const loginNote = (BE&&!S.email) ? `<p class="note" style="margin:0 0 12px">${t('fbLoginHint')}</p>` : '';
+  openPage(t('fb'),`${loginNote}<p class="note" style="margin:0 0 8px">${t('fbType')}</p>
+    <div class="chips" style="margin-bottom:12px">${['t1','t2','t3','t4'].map(k=>`<button class="chip" data-act="fbType" data-v="${k}">${t('fb'+k.toUpperCase().replace('T','T'))}</button>`).join('')}</div>
+    <p class="note" style="margin:0 0 6px">${t('fbMsg')}</p>
+    <textarea class="field" id="fbt" maxlength="500" style="height:130px;padding:12px;resize:vertical" placeholder="${t('fbWrite')}"></textarea>
+    <div id="fbx" style="margin-bottom:14px"></div>
+    <input type="file" id="fbf" accept="image/*" hidden>
+    <button class="btn" id="fbs" style="width:100%" data-act="fbSend">${t('fbSend')}</button>`,'settings');
+  $('#fbf').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
+    if(!/^image\//.test(f.type)) return toast(t('fbImgBad'));
+    try{ FB.img=await shrink(f) }catch(err){ return toast(t('fbImgBad')) }
+    fbPaint();
+  };
+  fbPaint();
+}
+/* Shrink a photo to a small JPEG so it can be stored with the message. */
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), im=new Image();
+    im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('img')) };
+    im.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=im.naturalWidth, h=im.naturalHeight; const k=Math.min(1,900/Math.max(w,h)); w=Math.round(w*k); h=Math.round(h*k);
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,w,h); x.drawImage(im,0,0,w,h);
+      let q=.7, out=c.toDataURL('image/jpeg',q);
+      while(out.length>600000&&q>.3){ q-=.1; out=c.toDataURL('image/jpeg',q) }
+      out.length>700000?rej(new Error('big')):res(out);
+    };
+    im.src=url;
+  });
+}
+async function sendFb(){
+  const v=($('#fbt').value||'').trim(); if(!v) return toast(t('fbEmpty'));
+  const btn=$('#fbs');
+  if(BE){
+    if(!S.email) return toast(t('fbLogin'));
+    btn.disabled=true; btn.textContent=t('fbSending');
+    const f={message:v,email:S.email,name:S.user,vidzId:S.uid,category:FB.type,appVersion:VER};
+    if(FB.img) f.image=FB.img;
+    try{ await BE.feedback(f) }catch(e){ btn.disabled=false; btn.textContent=t('fbSend'); return toast(t('fbFail')) }
+  }
+  $('#spage').hidden=true; toast(t('fbThanks'));
+}
+
+/* Locked episodes are only the ones of a paid drama: tapping one opens the buy page. */
+function unlockPage(id){ const d=byId(id); if(d) buyDramaPage(d) }
+
+/* ============ PAYMENTS (manual: user sends money, admin approves) ============ */
+const PLANS=[[7,'price7','d7'],[15,'price15','d15'],[30,'price30','d30'],[365,'price365','d365']];
+const payOn=()=>PLANS.some(p=>(+CFG[p[1]]||0)>0);
+const money=n=>`${CFG.currency||'৳'}${Number(n).toLocaleString(S.lang==='bn'?'bn-BD':'en-US')}`;
+const dateStr=ms=>{ try{ return new Date(ms).toLocaleDateString(S.lang==='bn'?'bn-BD':'en-US',{day:'numeric',month:'short',year:'numeric'}) }catch(e){ return '' } };
+let PAYSEL=null;
+/* The Premium page (plans, checkout, status, history) is a separate page kept inside #gpTpl and shown in a full-screen frame.
+   The app gives it the plans, numbers and language, and listens for the order and for status checks. */
+let gpFrame=null;
+function closePremium(){ const o=$('#gpov'); o.hidden=true; o.innerHTML=''; gpFrame=null }
+function premStatusLines(){
+  const L=[];
+  if(ADFREE) L.push(ADUNTIL>Date.now()&&ADUNTIL<4e12?t('adFreeTill').replace('{d}',dateStr(ADUNTIL)):t('adFreeOn'));
+  if(ALLUNTIL>Date.now()) L.push(t('allTill').replace('{d}',dateStr(ALLUNTIL)));
+  return L;
+}
+function plansPage(){ openPremium() }
+function openPremium(){
+  if(!S.email){
+    openPage(t('premium'),`<div class="empty"><div class="lockic">${I.lock}</div><b>${t('premium')}</b>${t('loginFirst')}</div>
+      <button class="btn" style="width:100%;margin-top:14px" data-act="login">${t('login')}</button>`,'closeSettings');
+    return;
+  }
+  const ov=$('#gpov'); ov.innerHTML='';
+  const f=document.createElement('iframe');
+  f.setAttribute('title',t('premium')); f.setAttribute('allow','clipboard-write; clipboard-read');
+  ov.appendChild(f); gpFrame=f; ov.hidden=false;
+  f.addEventListener('load',()=>{ try{ gpSetup(f) }catch(e){ closePremium(); toast(t('loadErr')) } },{once:true});
+  f.srcdoc=$('#gpTpl').textContent.replace(/<\\\/script>/g,'<'+'/script>');
+}
+function gpSetup(f){
+  const w=f.contentWindow; if(!w||!w.setPlans) throw new Error('premium page');
+  const email=S.email, key='pays_'+email;
+  const plans=PLANS.map(p=>({id:'p'+p[0],days:p[0],name:t('n'+p[0]),sub:t('k'+p[0]),price:String(+CFG[p[1]]||0),dramas:p[0]===365}));
+  const priced=plans.filter(p=>+p.price>0);
+  const again=()=>{ try{ w.setPremiumStatus(premStatusLines()) }catch(e){} };
+  w.onPaymentSubmit=async d=>{
+    const days=+d.days, pl=PLANS.find(p=>p[0]===days);
+    if(!pl||!(+CFG[pl[1]]>0)) throw new Error('plan');
+    if(!BE) return {id:'local'+Date.now()};
+    const rec={email,type:'plan',days,title:t('d'+days),amount:+CFG[pl[1]],trxId:String(d.transactionId).slice(0,40),method:String(d.method).slice(0,10),senderNumber:String(d.senderNumber).slice(0,20)};
+    return {id:await BE.saveOrder(rec)};
+  };
+  w.checkPaymentStatus=async it=>{ if(!BE||!it||String(it.id).startsWith('local')) return 'pending'; return await BE.orderStatus(it.id) };
+  w.onPaymentHistory=list=>store.set(key,list.slice(0,30));
+  w.onPremiumActivated=()=>{ lastRefresh=0; refreshAccount(false).then(again) };
+  w.onClosePremium=closePremium;
+  w.setConfig({lang:S.lang,cur:CFG.currency||'\u09f3',brand:'Vidz',theme:S.theme});
+  w.setPlans(priced.length?priced:plans.map(p=>({...p,soon:true})));
+  w.setMethods(payMethods().map(m=>({id:m.k,name:m.n,num:m.num,type:m.type})));
+  w.setPayInfo(CFG.payInfo||'');
+  w.setPremiumStatus(premStatusLines());
+  w.setPaymentHistory(store.get(key,[]));
+  refreshAccount(false).then(again);
+}
+function buyDramaPage(d){
+  const f=d.free ?? CFG.freeEpisodes;
+  PAYSEL={type:'drama',dramaId:d.id,title:String(d.t).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&'),amount:d.price};
+  payPage(`<div class="empty" style="margin-bottom:14px"><div class="lockic">${I.lock}</div><b>${t('buyDramaT')}</b>${t('buyDramaS').replace('{t}',d.t).replace('{f}',f)}</div>`);
+}
+const PM=[['bkash','bKash'],['nagad','Nagad']];
+const payMethods=()=>PM.map(([k,n])=>({k,n,num:String(CFG[k+'Number']||'').replace(/\D/g,''),type:['agent','merchant'].includes(CFG[k+'Type'])?CFG[k+'Type']:'personal'})).filter(x=>x.num.length>=10);
+function payPage(head){
+  const o=PAYSEL; if(!o) return;
+  const info=String(CFG.payInfo||'').trim(), ms=payMethods(), ready=(+o.amount>0)&&(ms.length>0||!!info);
+  let body=head||`<div class="paysum"><b>${esc(o.title)}</b><em>${+o.amount>0?money(o.amount):t('soonTag')}</em></div>`;
+  body+=`<p class="paystep">${t('payStep1').replace('{a}',+o.amount>0?`<span style="color:var(--accent)">${money(o.amount)}</span>`:'')}</p>`;
+  if(ms.length) body+=ms.map(m=>`<div class="paym"><div class="pmh"><b>${m.n}</b><span class="ptag">${t('ty_'+m.type)}</span></div>
+      <div class="paybox">${m.num}</div>
+      <button class="btn ghost" style="width:100%" data-act="copyPay" data-n="${m.num}">${t('copyNum')}</button>
+      <p class="note" style="margin:8px 0 0">${t('how_'+m.type).replace('{m}',m.n)}</p></div>`).join('');
+  if(info) body+=`<div class="paybox" style="margin-top:12px">${esc(info)}</div>`;
+  if(!ms.length&&!info) body+=`<div class="paybox">—</div>`;
+  body+=`<p class="paystep">${t('payStep2')}</p>
+    <input class="field" id="trx" type="text" placeholder="${t('trxPh')}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40">`;
+  if(!S.email) body+=`<p class="note" style="margin:0 0 10px">${t('loginFirst')}</p><button class="btn" style="width:100%" data-act="login">${t('login')}</button>`;
+  else if(!ready) body+=`<button class="btn off" style="width:100%" disabled>${t('sendReq')}</button><p class="note">${t('payNotReady')}</p>`;
+  else body+=`<button class="btn" style="width:100%" data-act="sendOrder">${t('sendReq')}</button><p class="note">${t('payNote')}</p>`;
+  openPage(o.type==='plan'?t('premium'):t('payT'),body,'closeSettings');
+}
+async function sendOrder(btn){
+  const o=PAYSEL; if(!o||!S.email||!(+o.amount>0)) return;
+  const trx=($('#trx').value||'').trim().replace(/\s+/g,'');
+  if(trx.length<4){ toast(t('trxBad')); return }
+  const rec={email:S.email,type:o.type,title:String(o.title).slice(0,120),amount:+o.amount,trxId:trx.slice(0,40)};
+  if(o.type==='plan') rec.days=o.days; else rec.dramaId=String(o.dramaId);
+  btn.disabled=true;
+  try{ if(BE) await BE.saveOrder(rec) }
+  catch(e){ btn.disabled=false; toast(t('sendFail')); return }
+  btn.disabled=false; PAYSEL=null;
+  openPage(t('sentOk'),`<div class="empty"><div class="lockic">${I.clock}</div><b>${t('sentOk')}</b>${t('sentSub')}</div>
+    <button class="btn" style="width:100%;margin-top:14px" data-act="refreshAcct">${t('refresh')}</button>`,'closeSettings');
+}
+
+/* ============ EVENTS ============ */
+document.addEventListener('click',async e=>{
+  const el=e.target.closest('[data-act]'); if(!el) return;
+  const act=el.dataset.act, id=el.dataset.id;
+  switch(act){
+    case 'scrim': if(e.target===el) closeSheet(); break;
+    case 'tab': setTab(el.dataset.v); break;
+    case 'cat': S.cat=el.dataset.c; S.q=''; renderHome(); break;
+    case 'open': openDetail(id); break;
+    case 'closeDetail': $('#detail').hidden=true; curDrama=null; renderAll(); break;
+    case 'play': openPlayer(id,+el.dataset.ep||1); break;
+    case 'closePlayer': closePlayer(); break;
+    case 'save': {
+      const i=S.list.indexOf(id); if(i>=0) S.list.splice(i,1); else S.list.unshift(id);
+      store.set('list',S.list); toast(i>=0?t('removed'):t('added'));
+      document.querySelectorAll(`[data-act="save"][data-id="${id}"]`).forEach(b=>b.setAttribute('aria-pressed',String(i<0)));
+      if(!$('#detail').hidden && curDrama===id) renderDetail(id);
+      if(S.tab==='list') renderList();
+      break; }
+    case 'ltab': S.listTab=el.dataset.v; renderList(); break;
+    case 'lang': S.lang=el.dataset.v; store.set('lang',S.lang); renderAll(); break;
+    case 'theme': S.theme=el.dataset.v; store.set('theme2',S.theme); applyTheme(); renderMe(); break;
+    case 'share': {
+      const url=location.href;
+      try{ navigator.clipboard.writeText(url).then(()=>toast(t('copied')),()=>toast(url)); }catch(err){ toast(url) } break; }
+    case 'speed': { const i=(SPEEDS.indexOf(P.speed)+1)%SPEEDS.length; P.speed=SPEEDS[i]; if(P.video) P.video.playbackRate=P.speed; $('#pSpeedT').textContent=P.speed+'x'; break; }
+    case 'epsheet': {
+      const d=byId(P.id); openSheet(`<h3><span>${d.t}</span><button data-act="scrim" style="font-size:22px;line-height:1" aria-label="${t('close')}">×</button></h3><div id="sEps"></div>`);
+      epGrid($('#sEps'),d,P.ep,'goto'); break; }
+    case 'history': histPage(); break;
+    case 'notif': notifPage(); break;
+    case 's_notifset': notifSetPage(); break;
+    case 'togNotif': S.notifOn=!S.notifOn; store.set('notifOn',S.notifOn); notifSetPage(); updateBell(); renderMe(); break;
+    case 'notifOn': S.notifOn=true; store.set('notifOn',true); notifPage(); updateBell(); renderMe(); break;
+    case 'readAll': S.nread=NOTIFS.map(n=>n.id); store.set('nread',S.nread); notifPage(); updateBell(); renderMe(); break;
+    case 'notifOpen': {
+      if(Date.now()-lastSwipe<350) break;
+      if(!S.nread.includes(id)){ S.nread.push(id); store.set('nread',S.nread); }
+      updateBell(); renderMe();
+      { const nd=NOTIFS.find(n=>n.id===id); if(nd&&nd.d&&byId(nd.d)){ $('#spage').hidden=true; openDetail(nd.d) } else notifPage(); }
+      break; }
+    case 'closeSettings': $('#spage').hidden=true; break;
+    case 'settings': settingsSheet(); break;
+    case 's_chk':
+      subSheet(t('chkUpd'),`<p id="updMsg" style="margin:0">${t('checking')}</p><p class="note">${t('ver')} ${VER}</p>`);
+      checkUpdate(); break;
+    case 's_about': subSheet(t('about'),`<p style="margin:0 0 10px">${CFG.aboutText?txtHtml(CFG.aboutText):t('aboutTxt')}</p><p class="note">Vidz ${t('ver')} ${VER}<br>Powered by Shihab</p>`); break;
+    case 's_privacy': subSheet(t('privacy'),`<p style="margin:0">${CFG.privacyText?txtHtml(CFG.privacyText):t('privTxt')}</p>`); break;
+    case 's_terms': subSheet(t('terms'),`<p style="margin:0">${CFG.termsText?txtHtml(CFG.termsText):t('termsTxt')}</p>`); break;
+    case 's_privset': privSheet(); break;
+    case 's_feedback': feedbackPage(); break;
+    case 'fbPick': $('#fbf').click(); break;
+    case 'fbRm': FB.img=''; fbPaint(); break;
+    case 'fbType': FB.type=el.dataset.v; fbPaint(); break;
+    case 'togHist': S.saveHist=!S.saveHist; store.set('saveHist',S.saveHist); privSheet(); break;
+    case 'wipe':
+      S.list=[]; S.hist=[]; S.unl={}; store.set('unl',{}); S.email=''; S.user=''; S.uid=S.guest;
+      if(BE&&S.fbUid) BE.signOut();
+      ['list','hist','email','user'].forEach(k=>store.set(k,k==='email'||k==='user'?'':[]));
+      $('#spage').hidden=true; renderAll(); toast(t('wiped')); break;
+    case 'clearHist':
+      S.hist=[]; store.set('hist',S.hist); closeSheet(); toast(t('histCleared'));
+      if(!$('#spage').hidden) histPage();
+      if(S.tab==='list') renderList();
+      if(curDrama && !$('#detail').hidden) renderDetail(curDrama);
+      break;
+    case 'openFromSheet': closeSheet(); $('#spage').hidden=true; openDetail(id); break;
+    case 'login':
+      openPage(t('login'),`<p class="note" style="margin:0 0 12px">${t('loginNote')}</p>
+        <input class="field" id="uname" type="email" inputmode="email" placeholder="example@gmail.com" autocomplete="email" autocapitalize="off" spellcheck="false">
+        <p class="note" id="lerr" style="color:#e5484d;margin:-6px 0 10px" hidden>${t('gmailBad')}</p>
+        <button class="btn" style="width:100%" data-act="doLogin">${t('cont2')}</button>`,'closeSettings');
+      setTimeout(()=>{const f=$('#uname'); f&&f.focus()},50); break;
+    case 'doLogin': {
+      const v=($('#uname').value||'').trim().toLowerCase();
+      if(!goodEmail(v)){ $('#lerr').hidden=false; break; }
+      $('#lerr').hidden=true;
+      if(BE){
+        const btn=el; btn.disabled=true;
+        LOGGING=true;
+        try{
+          await BE.signAnon();
+          const ok=await finishLogin(v,true);
+          if(ok){ loginOpen=false; closeSheet(); $('#spage').hidden=true; toast(t('welcome')+', '+S.user) }
+        }catch(e){ $('#lerr').textContent=t('loginFail'); $('#lerr').hidden=false }
+        LOGGING=false; btn.disabled=false; break;
+      }
+      S.email=v; S.user=v.split('@')[0].replace(/[._]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,24);
+      S.uid=idFor(v); store.set('email',S.email); store.set('user',S.user);
+      closeSheet(); $('#spage').hidden=true; renderMe(); toast(t('welcome')+', '+S.user); break; }
+    case 'plans': openPremium(); break;
+    case 'sendOrder': sendOrder(el); break;
+    case 'refreshAcct': await refreshAccount(true); break;
+    case 'copyPay': { const txt=String(el.dataset.n||CFG.payInfo||'').trim(); try{ await navigator.clipboard.writeText(txt); toast(t('copied')) }catch(e){ const r=document.createRange(); const b=el.previousElementSibling; if(b){ r.selectNodeContents(b); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); try{ document.execCommand('copy'); toast(t('copied')) }catch(e2){} } } break; }
+    case 'retry': start(); break;
+    case 'openUpdate': { const u=CFG.updateUrl; if(/^https?:\/\//i.test(u||'')) window.open(u,'_blank','noopener'); else toast(t('noUpdUrl')); break; }
+    case 'annClose': annHide=true; renderHome(); break;
+    case 'feedback': feedbackPage(); break;
+    case 'fbSend': sendFb(); break;
+    case 'logout':
+      if(BE){ BE.signOut(); toast(t('loggedOut')); break; }
+      S.email=''; S.user=''; S.uid=S.guest; store.set('email',''); store.set('user','');
+      renderMe(); toast(t('loggedOut')); break;
+  }
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('#layer').innerHTML) closeSheet(); else if(!$('#spage').hidden) $('#spage').hidden=true; else if(!$('#player').hidden) closePlayer(); else if(!$('#detail').hidden){ $('#detail').hidden=true; curDrama=null } } });
+
+document.addEventListener('keydown',e=>{ if(e.key==='Enter' && e.target.id==='uname'){ const b=document.querySelector('[data-act="doLogin"]'); b&&b.click(); } });
+/* Swipe a read notification left or right to delete it. */
+let sw=null, lastSwipe=0;
+document.addEventListener('pointerdown',e=>{
+  const r=e.target.closest('.nrow'); if(!r) return;
+  sw={r,x:e.clientX,y:e.clientY,dx:0,drag:false,read:r.dataset.read==='1'};
+});
+document.addEventListener('pointermove',e=>{
+  if(!sw) return;
+  const dx=e.clientX-sw.x, dy=e.clientY-sw.y;
+  if(!sw.drag){ if(Math.abs(dx)>10 && Math.abs(dx)>Math.abs(dy)*1.5) sw.drag=true; else return; }
+  sw.dx=dx;
+  if(sw.read){ sw.r.style.transform=`translateX(${dx}px)`; sw.r.style.opacity=String(Math.max(.25,1-Math.abs(dx)/260)); }
+});
+function endSwipe(){
+  if(!sw) return; const s=sw; sw=null;
+  if(!s.drag) return;
+  lastSwipe=Date.now(); s.r.classList.add('anim');
+  if(s.read && Math.abs(s.dx)>90){
+    s.r.style.transform=`translateX(${s.dx>0?'110%':'-110%'})`; s.r.style.opacity='0';
+    const id=s.r.dataset.id;
+    setTimeout(()=>{ S.ndel.push(id); store.set('ndel',S.ndel); notifPage(); updateBell(); renderMe(); toast(t('notifDeleted')); },220);
+  } else {
+    s.r.style.transform=''; s.r.style.opacity='';
+    setTimeout(()=>s.r.classList.remove('anim'),230);
+  }
+}
+document.addEventListener('pointerup',endSwipe);
+document.addEventListener('pointercancel',endSwipe);
+
+applyTheme(); renderAll(); setTab('home'); start();
+</script>
+</body></html>
